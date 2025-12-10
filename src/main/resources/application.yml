@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: academic-service
+
+  r2dbc:
+    username: user
+    password: password
+    url: r2dbc:postgresql://localhost:5432/emis_db
+    pool:
+      max-create-connection-time: 2s
+      initial-size: 5
+      max-size: 10
+
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          issuer-uri: http://localhost:8080/realms/emis
+#  lifecycle:
+#    timeout-per-shutdown-phase: 15s
+
+
+server:
+  port: 8084
+  shutdown: graceful
+  netty:
+    connection-timeout: 2s
+    idle-timeout: 15s
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+
+# application-prod.yml
+#springdoc:
+#  swagger-ui:
+#    enabled: false
+#  api-docs:
+#    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.http.converter: DEBUG
+    org.springframework.validation: DEBUG
+    org.springframework.web.reactive.result.method.annotation: DEBUG
+    io.r2dbc.postgresql.QUERY: DEBUG
+
+emis:
+  services:
+    configuration:
+      base-url: ${EMIS_SERVICE_URL:http://localhost:8082}
+      get-school-details-url: ${emis.services.configuration.base-url}/api/v1/schools/{schoolCode}
+      validate-school-exists-url: ${emis.service.configuration.base-url}/schools/validate/{schoolCode}
