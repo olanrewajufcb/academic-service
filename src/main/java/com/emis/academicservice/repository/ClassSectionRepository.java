@@ -1,6 +1,7 @@
 package com.emis.academicservice.repository;
 
 import com.emis.academicservice.domain.db.ClassSection;
+import com.emis.academicservice.domain.db.SchoolClass;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import reactor.core.publisher.Flux;
@@ -20,5 +21,38 @@ public interface ClassSectionRepository extends R2dbcRepository<ClassSection, Lo
     Flux<ClassSection> findBySubjectId(Long subjectId);
 
     Mono<ClassSection> findByClassIdAndSubjectId(Long classId, Long subjectId);
+
+
+    @Query("""
+        SELECT * from class_sections 
+        WHERE class_id = $1
+        ORDER BY 
+            CASE 
+                WHEN $2 = 'sectionId' THEN section_id
+                WHEN $2 = 'subjectId' THEN subject_id
+                ELSE section_id
+            END 
+        LIMIT  $3 OFFSET $4
+    """)
+    Flux<ClassSection> findPageByClassId(Long classId, String sortBy, int limit, long offset);
+
+    @Query("SELECT COUNT(*) FROM class_sections WHERE class_id = $1")
+    Mono<Long> countByClassId(Long classId);
+
+    Mono<SchoolClass> findBySchoolIdAndClassId(Long schoolId, Long classId);
+
+
+    @Query("""
+    SELECT 
+        cs.section_id,
+        cs.class_id,
+        sc.school_id,
+        sc.school_code
+    FROM class_sections cs
+    JOIN school_classes sc ON cs.class_id = sc.class_id
+    WHERE cs.section_id = $1 
+      AND sc.school_code = $2
+    """)
+    Mono<SectionValidationProjection> validateSectionOwnership(Long sectionId, String schoolCode);
 }
 

@@ -14,7 +14,10 @@ public class SchoolClass {
     @Id
     private Long classId;
     private Long schoolId;
+    private String schoolCode;
+    private String schoolName;
     private Long formTeacherId;
+    private String formTeacherName;
     private String className;
     private String classLevel;
     private String arm;
@@ -24,4 +27,8 @@ public class SchoolClass {
     private Integer currentStudents;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public Boolean classCapacityExceeded() {
+        return  maxStudents - currentStudents <= 0;
+    }
 }

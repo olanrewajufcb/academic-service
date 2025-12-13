@@ -14,11 +14,16 @@ public class Enrollment {
     private Long enrollmentId;
     private Long classId;
     private Long studentId;
+    private String studentNumber;
+    private String studentName;
     private String academicYear;
-    private String enrollmentStatus; // e.g., "ENROLLED", "WITHDRAWN", "COMPLETED"
     private LocalDateTime enrollmentDate;
-    private EnrollmentStatus status;
+    private EnrollmentStatus enrollmentStatus;
+    private Long admittedBy;
+    private LocalDateTime admittedAt;
+    private String rejectionReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String idempotencyKey;
 
 }

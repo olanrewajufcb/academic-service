@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @Table(name = "section_enrollments")
 public class SectionEnrollment {
     @Id
-    private Long enrollmentId;
+    private Long sectionEnrollmentId;
     private Long sectionId;
     private Long studentId;
     private LocalDate enrollmentDate;

@@ -1,5 +1,5 @@
 package com.emis.academicservice.enums;
 
 public enum EnrollmentStatus {
-    ENROLLED, WAITLISTED, DROPPED, COMPLETED, FAILED
+    ENROLLED, ADMITTED, DROPPED, REJECTED
 }

@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -50,14 +51,14 @@ public class SubjectController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public Flux<SubjectResponse> getSubjectBySchoolAndClassLevel(@RequestParam String schoolCode,
-                                                                @RequestParam String classLevel,            @RequestParam(defaultValue = "0")
+    public Mono<Page<SubjectResponse>> getSubjectBySchoolAndClassLevel(@RequestParam String schoolCode,
+                                                                      @RequestParam String classLevel, @RequestParam(defaultValue = "0")
     @Min(value = 0, message = "page must not be less than 0")
     int page,
-    @RequestParam(defaultValue = "10")
+                                                                      @RequestParam(defaultValue = "10")
     @Min(value = 1, message = "size must be at least 1")
     int size,
-    @RequestParam(defaultValue = "subjectId")
+                                                                      @RequestParam(defaultValue = "subjectId")
     String sortBy) {
 
         if(!ALLOWED_SORT_FIELDS.contains(sortBy)) {

@@ -6,14 +6,11 @@ import com.emis.academicservice.service.EnrollmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-import java.util.UUID;
 
 @RestController
 @Slf4j
@@ -25,11 +22,11 @@ public class EnrollmentController {
     private final EnrollmentService service;
 
     @PostMapping
-    public Mono<EnrollmentResponse> enrollStudentToClass(@Valid @RequestBody EnrollStudentRequest request){
-        String requestId = UUID.randomUUID().toString();
+    @ResponseStatus(HttpStatus.CREATED)
+    public Mono<EnrollmentResponse> enrollStudentToClass(
+            @RequestHeader("X-Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody EnrollStudentRequest request){
 
-        return service.enrollStudent(request,requestId)
-                .doOnNext(enrollment -> log.info(String.format("Enrollment with id %s succesfully", requestId)))
-                .contextWrite(ctx -> ctx.put("requestId", requestId));
+        return service.enrollStudent(request, idempotencyKey);
     }
 }

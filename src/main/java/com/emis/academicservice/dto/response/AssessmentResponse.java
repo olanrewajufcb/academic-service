@@ -10,6 +10,7 @@ import java.time.LocalDate;
 public class AssessmentResponse {
     private Long assessmentId;
     private Long sectionId;
+    private Long termId;
     private String name;
     private AssessmentType type;
     private String description;

@@ -6,5 +6,5 @@ import reactor.core.publisher.Mono;
 
 public interface EnrollmentService {
 
-    Mono<EnrollmentResponse> enrollStudent(EnrollStudentRequest request, String requestId);
+    Mono<EnrollmentResponse> enrollStudent(EnrollStudentRequest request, String idempotencyKey);
 }

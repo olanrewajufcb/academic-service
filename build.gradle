@@ -46,9 +46,14 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.7.0'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     runtimeOnly 'io.netty:netty-resolver-dns-native-macos:4.1.101.Final:osx-aarch_64'
+
+    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.0'
+
+
+
+
 }
 
 jacoco {

@@ -8,9 +8,12 @@ import com.emis.academicservice.service.StudentClassesService;
 import com.emis.academicservice.service.client.StudentClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -21,12 +24,27 @@ public class StudentClassesServiceImp implements StudentClassesService {
     private final SchoolClassRepository repository;
 
     @Override
-    public Flux<StudentClassesPerYear> getStudentsClasses(String studentNumber, String academicYear, String requestId) {
+    public Flux<StudentClassesPerYear> getStudentsClasses(String studentNumber, String academicYear,
+                                                          Pageable pageable, String requestId) {
+
+        int size = pageable.getPageSize();
+        long offset = pageable.getPageNumber();
+
         return studentClientService.getStudentDetails(studentNumber)
-                .flatMapMany(response -> {
-                    Long studentId = response.studentId();
-                    return repository.getStudentClassesPerAcademicYear(studentId, academicYear);
-                })
-                .switchIfEmpty(Mono.error(new StudentNotFoundException("No records for the given student " + studentNumber)));
+                .flatMapMany(student ->
+                        Mono.zip(repository.getStudentClassesPerAcademicYear(academicYear,student.studentId(),
+                                size, offset).collectList(),
+                                repository.countStudentClasses(academicYear, student.studentId())
+                                )
+                                .flatMapMany(tuple -> {
+                                    List<StudentClassesPerYear> studentClasses = tuple.getT1();
+                                    long total = tuple.getT2();
+
+                                    if (total == 0) {
+                                        return Flux.empty();
+                                    }
+                                    return Flux.fromIterable(studentClasses);
+                                }));
+
     }
 }

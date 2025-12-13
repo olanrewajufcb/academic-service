@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: academic-service
+  labels:
+    app: academic-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: academic-service
+  template:
+    metadata:
+      labels:
+        app: academic-service
+    spec:
+      containers:
+        - name: academic-service
+          image: academic-service
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5"]
+          ports:
+            - containerPort: 9001
+          env:
+            - name: BPL_JVM_THREAD_COUNT
+              value: "50"
+            - name: SPRING_DATA_URL
+              value: jdbc:postgresql://emis-postgres/emis_academic
+            - name: SPRING_PROFILES_ACTIVE
+              value: testdata

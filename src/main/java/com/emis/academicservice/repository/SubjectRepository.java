@@ -3,6 +3,7 @@ package com.emis.academicservice.repository;
 import com.emis.academicservice.domain.db.Subject;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
+import org.springframework.data.repository.query.Param;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -18,5 +19,11 @@ public interface SubjectRepository extends R2dbcRepository<Subject, Long> {
          ORDER BY subject_id LIMIT :size OFFSET :offset
  """)
     Flux<Subject> findBySchoolIdAndClassLevel(Long schoolId, String classLevel, int size, long offset);
+
+    @Query("SELECT COUNT(*) FROM subjects WHERE school_id = :schoolId AND class_level = :classLevel")
+    Mono<Long> countBySchoolIdAndClassLevel(
+            @Param("schoolId") Long schoolId,
+            @Param("classLevel") String classLevel
+    );
 }
 

@@ -1,6 +1,7 @@
 package com.emis.academicservice.controller;
 
 import com.emis.academicservice.dto.request.CreateClassSectionRequest;
+import com.emis.academicservice.dto.request.EnrollStudentInClassSectionRequest;
 import com.emis.academicservice.dto.response.ClassSectionResponse;
 import com.emis.academicservice.dto.response.SectionEnrollmentResponse;
 import com.emis.academicservice.service.SectionEnrollmentService;
@@ -23,11 +24,11 @@ public class SectionEnrollmentController {
     private final SectionEnrollmentService service;
 
     @PostMapping("/{sectionId}")
-    public Mono<SectionEnrollmentResponse> enrollStudentInSubjectSection(@PathVariable Long sectionId,
-                                        @Valid @RequestBody CreateClassSectionRequest request) {
+    public Mono<SectionEnrollmentResponse> enrollStudentInClassSection(@PathVariable Long sectionId,
+                                        @Valid @RequestBody EnrollStudentInClassSectionRequest request) {
         String requestId = UUID.randomUUID().toString();
 
-        return service.enrollStudentInSubjectSection(sectionId, request, requestId)
+        return service.enrollStudentInClassSection(sectionId, request, requestId)
                 .doOnSubscribe(sub -> log.info("Successfully Enrolled student " +
                         " in subject section with id {}", requestId))
                 .contextWrite(ctx -> ctx.put("requestId", requestId));

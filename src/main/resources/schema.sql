@@ -37,9 +37,8 @@ CREATE TABLE school_classes (
                                     ),
 
                                 arm VARCHAR(20),  -- "A", "B", "Science", "Arts" (for senior classes)
-                                stage VARCHAR(20) CHECK (stage IN ('PRIMARY', 'JUNIOR_SECONDARY', 'SENIOR_SECONDARY'))
-
-                                    academic_year VARCHAR(10) NOT NULL,  -- "2024/2025"
+                                stage VARCHAR(20) CHECK (stage IN ('PRIMARY', 'JUNIOR_SECONDARY', 'SENIOR_SECONDARY')),
+                                academic_year VARCHAR(10) NOT NULL,  -- "2024/2025"
                                 form_teacher_id BIGINT,  -- Will be populated when HR service exists
                                 max_students INTEGER DEFAULT 50,
                                 current_students INTEGER DEFAULT 0,
@@ -71,6 +70,9 @@ CREATE TABLE enrollment (
                             enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             enrollment_status VARCHAR(20) DEFAULT 'ENROLLED'
                                 CHECK (enrollment_status IN ('ENROLLED', 'WAITLISTED', 'DROPPED', 'COMPLETED', 'FAILED')),
+                            admitted_by BIGINT,
+                            admitted_at TIMESTAMPTZ DEFAULT NOW(),
+                            rejection_reason VARCHAR(100),
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             UNIQUE(student_id, class_id)  -- Student can only be enrolled once per class

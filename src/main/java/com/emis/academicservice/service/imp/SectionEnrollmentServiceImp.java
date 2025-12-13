@@ -1,19 +1,76 @@
 package com.emis.academicservice.service.imp;
 
-import com.emis.academicservice.dto.request.CreateClassSectionRequest;
+import com.emis.academicservice.domain.db.SectionEnrollment;
+import com.emis.academicservice.dto.request.EnrollStudentInClassSectionRequest;
 import com.emis.academicservice.dto.response.SectionEnrollmentResponse;
+import com.emis.academicservice.exception.*;
+import com.emis.academicservice.mapper.SectionEnrollmentMapper;
+import com.emis.academicservice.repository.ClassSectionRepository;
+import com.emis.academicservice.repository.SectionEnrollmentRepository;
 import com.emis.academicservice.service.SectionEnrollmentService;
+import com.emis.academicservice.service.client.StudentClientService;
+import io.netty.handler.timeout.TimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
+import java.time.LocalDate;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class SectionEnrollmentServiceImp implements SectionEnrollmentService {
+
+    private final ClassSectionRepository classSectionRepository;
+    private final SectionEnrollmentRepository sectionEnrollmentRepository;
+    private final TransactionalOperator transactionalOperator;
+    private final StudentClientService studentClientService;
+    private final SectionEnrollmentMapper mapper;
+
     @Override
-    public Mono<SectionEnrollmentResponse> enrollStudentInSubjectSection(Long sectionId, CreateClassSectionRequest request, String requestId) {
-        return null;
+    public Mono<SectionEnrollmentResponse> enrollStudentInClassSection(Long sectionId,
+                                         EnrollStudentInClassSectionRequest request, String requestId) {
+
+        return transactionalOperator.execute(status ->
+                classSectionRepository.validateSectionOwnership(sectionId, request.getSchoolCode())
+                        .switchIfEmpty(Mono.error(new InvalidEnrollmentException(
+                                "Section " + sectionId + " not found for school '" + request.getSchoolCode() + "'")))
+                        .flatMap(validation ->
+                                studentClientService.getStudentDetails(request.getStudentNumber())
+                                        .timeout(Duration.ofSeconds(3))
+                                        .flatMap(student -> {
+                                            if (!request.getSchoolCode().equals(student.schoolCode())) {
+                                                return Mono.error(new InvalidEnrollmentException(
+                                                        String.format("Student %s belongs to school '%s', not '%s'",
+                                                                request.getStudentNumber(), student.schoolCode(), request.getSchoolCode())));
+                                            }
+
+                                            SectionEnrollment enrollment = mapper.toEntity(request);
+                                                enrollment.setSectionId(sectionId);
+                                                enrollment.setStudentId(student.studentId());
+                                                enrollment.setEnrollmentDate(LocalDate.now());
+                                                return sectionEnrollmentRepository.save(enrollment);
+                                        })
+                        ))
+                .next()
+                        .doOnSuccess(saved ->
+                                log.info("[{}] Student {} enrolled in section {}",
+                                        requestId, saved.getStudentId(), saved.getSectionId()))
+                        .map(mapper::toResponse)
+                .onErrorMap(TimeoutException.class, ex -> new ExternalServiceException("Student service timeout"))
+                        .onErrorMap(DataIntegrityViolationException.class, ex -> {
+                            if (ex.getMessage().contains("section_enrollment_section_id_student_id_key")) {
+                                return new StudentAlreadyEnrolledException("Duplicate section enrollment");
+                            }
+                            return new EnrollmentFailureException("DB error", ex);
+                        })
+                        .onErrorResume(ex -> {
+                            log.error("[{}] Section enrollment failed for sectionId={}", requestId, sectionId, ex);
+                            return Mono.error(ex);
+                        });
     }
 }

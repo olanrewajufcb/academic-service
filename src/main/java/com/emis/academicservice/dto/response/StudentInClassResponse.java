@@ -6,14 +6,17 @@ import lombok.Data;
 
 @Data
 public class StudentInClassResponse {
-    private String name;
+    private Long studentId;
+    private String studentNumber;
+    private String studentName;
+    private Long schoolId;
+    private String schoolName;
     private SchoolType type;
     private SchoolLevel level;
     private Long classId;
-    private Long schoolId;
-    private Long formTeacherId;
     private String className;
     private String classLevel;
+    private Long formTeacherId;
     private String arm;
     private String academicYear;
 

@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
@@ -46,14 +47,14 @@ public class ClassSectionController {
     }
 
     @GetMapping
-    public Flux<ClassSectionResponse> getAllClassSectionsByClassId(@RequestParam Long classId,
-                                                                   @RequestParam(defaultValue = "0")
+    public Mono<Page<ClassSectionResponse>> getAllClassSectionsByClassId(@RequestParam Long classId,
+                                                                         @RequestParam(defaultValue = "0")
     @Min(value = 0, message = "page must not be less than 0")
     int page,
-    @RequestParam(defaultValue = "10")
+                                                                         @RequestParam(defaultValue = "10")
     @Min(value = 1, message = "size must be at least 1")
     int size,
-    @RequestParam(defaultValue = "sectionId")
+                                                                         @RequestParam(defaultValue = "sectionId")
     String sortBy) {
 
         if(!ALLOWED_SORT_FIELDS.contains(sortBy)) {

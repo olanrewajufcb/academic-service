@@ -6,10 +6,12 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.r2dbc.config.EnableR2dbcAuditing;
 
 @Configuration
 @Getter
 @Setter
+@EnableR2dbcAuditing
 @ConfigurationProperties(prefix = "emis.services")
 public class ServiceConfigurationProperties {
 

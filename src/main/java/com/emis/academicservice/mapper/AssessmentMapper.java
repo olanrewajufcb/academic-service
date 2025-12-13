@@ -11,6 +11,8 @@ import org.mapstruct.Mapping;
 public interface AssessmentMapper {
 
     @Mapping(target = "assessmentId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     Assessment toEntity(CreateAssessmentRequest request);
 
     AssessmentResponse toResponse(Assessment entity);

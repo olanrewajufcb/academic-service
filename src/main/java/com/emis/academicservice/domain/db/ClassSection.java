@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 public class ClassSection {
 
     @Id
+    private Long schoolId;
     private Long sectionId;
     private Long classId;
     private Long subjectId;

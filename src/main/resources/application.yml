@@ -27,16 +27,16 @@ server:
     connection-timeout: 2s
     idle-timeout: 15s
 
-springdoc:
-  swagger-ui:
-    path: /swagger-ui
-
-# application-prod.yml
 #springdoc:
 #  swagger-ui:
-#    enabled: false
-#  api-docs:
-#    enabled: false
+#    path: /swagger-ui
+
+# application-prod.yml
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true
 
 management:
   endpoints:

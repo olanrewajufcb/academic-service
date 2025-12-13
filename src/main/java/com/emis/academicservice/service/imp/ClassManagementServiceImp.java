@@ -4,7 +4,6 @@ import com.emis.academicservice.cache.SchoolCacheService;
 import com.emis.academicservice.domain.db.SchoolClass;
 import com.emis.academicservice.dto.request.CreateSchoolClassRequest;
 import com.emis.academicservice.dto.response.SchoolClassResponse;
-import com.emis.academicservice.dto.response.StudentDetailsResponse;
 import com.emis.academicservice.dto.response.StudentInClassResponse;
 import com.emis.academicservice.exception.*;
 import com.emis.academicservice.mapper.SchoolClassMapper;
@@ -13,19 +12,21 @@ import com.emis.academicservice.repository.StudentsInClassRow;
 import com.emis.academicservice.service.ClassManagementService;
 import com.emis.academicservice.service.client.HrClientService;
 import com.emis.academicservice.service.client.SchoolClientService;
-import com.emis.academicservice.service.client.StudentClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @Service
@@ -38,53 +39,56 @@ public class ClassManagementServiceImp implements ClassManagementService {
     private final SchoolClientService schoolClientService;
     private final HrClientService hrClientService;
     private final SchoolCacheService schoolCacheService;
-    private final StudentClientService studentClientService;
 
 
     @Override
     public Mono<SchoolClassResponse> createSchoolClass(CreateSchoolClassRequest request, String requestId) {
-        SchoolClass schoolClass = schoolClassMapper.toEntity(request);
-        schoolClass.setCurrentStudents(0);
 
-        return schoolClientService.validateSchoolExists(request.getSchoolId())
+
+        return transactionalOperator.execute(status ->
+                schoolClientService.validateSchoolExistsByCode(request.getSchoolCode()))
                 .flatMap(schoolExists -> {
-                    if(Boolean.FALSE.equals(schoolExists)) {
-                        return Mono.error(new SchoolNotFoundException(
-                                "School with " + request.getSchoolId() + " does not exist"));
+                    if (Boolean.FALSE.equals(schoolExists)) {
+                        return Mono.error(new SchoolNotFoundException("School not found: " + request.getSchoolCode()));
                     }
                     return Mono.just(true);
                 })
-                .flatMap(__ -> {
-                    if(request.getFormTeacherId() == null) {
-                        return Mono.just(true);
-                    }
-                    return validatedFormTeacher(request.getFormTeacherId())
-                            .thenReturn(true);
-                })
-                .then(schoolClassRepository.existsBySchoolIdAndClassNameAndAcademicYear(
-                        request.getSchoolId(),
-                        request.getClassName(),
-                        request.getAcademicYear()))
-                .flatMap(duplicateExists -> {
-                    if (Boolean.TRUE.equals(duplicateExists)) {
-                        return Mono.error(new DuplicateClassException(
-                                String.format("Class %s already exists for school %s in academic year %s",
-                                        request.getClassName(), request.getSchoolId(), request.getAcademicYear())
-                        ));
-                    }
-                    return Mono.just(false);
-                })
-                .then(Mono.defer(() ->  schoolClassRepository.save(schoolClass)))
-                .as(transactionalOperator::transactional)
-                .doOnSuccess(savedClass -> log.info("School class created successfully with id {} | requestId: {}",
-                        savedClass.getClassId(), requestId))
-                .map(schoolClassMapper::toResponse)
-                .onErrorMap(DataIntegrityViolationException.class, ex ->
-                        new DataIntegrityViolationException("Data integrity violation: " + ex.getMessage(), ex))
-                .onErrorResume(ex -> {
-                    log.error("Failed to create school class | requestId {} | error {}", requestId, ex.getMessage());
-                    return Mono.error(new SchoolClassCreationException("Failed to create school class " + requestId, ex));
-                });
+                .then(request.getFormTeacherId() != null
+                        ? validatedFormTeacher(request.getFormTeacherId())
+                        : Mono.empty())
+                .then(Mono.defer(() -> {
+                    SchoolClass schoolClass = schoolClassMapper.toEntity(request);
+                    schoolClass.setCurrentStudents(0);
+                    return schoolClassRepository.save(schoolClass);
+                }))
+        .doOnSuccess(
+            savedClass ->
+                log.info(
+                    "School class created successfully with id {} | requestId: {}",
+                    savedClass.getClassId(),
+                    requestId))
+        .map(schoolClassMapper::toResponse)
+        .onErrorMap(
+            DuplicateKeyException.class,
+            e -> new DuplicateClassException("Class already exists " + requestId))
+        .onErrorMap(
+            DataIntegrityViolationException.class,
+            ex ->
+                new DataIntegrityViolationException(
+                    "DB constraint failed : " + ex.getMessage(), ex))
+        .onErrorResume(
+            ex -> {
+              log.error(
+                  "Failed to create school class | requestId {} | error {}",
+                  requestId,
+                  ex.getMessage());
+                if (ex instanceof SchoolNotFoundException || ex instanceof TeacherNotFoundException) {
+                    return Mono.error(ex);
+                }
+              return Mono.error(
+                  new SchoolClassCreationException(
+                      "Failed to create school class " + requestId, ex));
+            });
     }
 
     private Mono<Void> validatedFormTeacher(Long teacherId) {
@@ -99,42 +103,112 @@ public class ClassManagementServiceImp implements ClassManagementService {
     }
 
     @Override
-    public Flux<SchoolClassResponse> getSchoolClassBySchoolId(String schoolCode, String academicYear,
-                                                              Pageable pageable, String requestId) {
+    public Mono<Page<SchoolClassResponse>> getSchoolClassBySchoolId(String schoolCode, String academicYear,
+                                                                   Pageable pageable, String requestId) {
+
+        int pageSize = pageable.getPageSize();
+        long offset = pageable.getOffset();
+
         return schoolCacheService.getSchoolIdByCode(schoolCode)
                 .switchIfEmpty(Mono.error(new SchoolClassNotFoundException("School not found with code " + schoolCode)))
-                .flatMapMany(schoolId -> schoolClassRepository.findBySchoolIdAndAcademicYear(schoolId,
-                        academicYear, pageable.getPageSize(),  pageable.getOffset())
+                .flatMap(schoolId -> Mono.zip(
+                        Mono.just(schoolId),
+                        schoolClassRepository.findBySchoolIdAndAcademicYear(schoolId,
+                        academicYear, pageSize,  offset).collectList(),
+                        schoolClassRepository.countBySchoolIdAndAcademicYear(schoolId,academicYear))
                 )
-                .switchIfEmpty(Mono.error(new SchoolClassNotFoundException("No classes found for " + schoolCode +
-                        "and the given academic year " + academicYear )))
-                .map(schoolClassMapper::toResponse);
+                .timeout(Duration.ofSeconds(5))
+                .flatMap(tuple -> {
+                    long schoolId = tuple.getT1();
+                    List<SchoolClass> schoolClassList = tuple.getT2();
+                   long total =  tuple.getT3();
+
+                   if (total == 0) {
+                       return Mono.error(new SchoolClassNotFoundException("No classes found for " +
+                               schoolCode + " and the given academic year: " + academicYear));
+                   }
+                   var responses = schoolClassList.stream()
+                           .map(schoolClassMapper::toResponse)
+                           .toList();
+
+                   Page<SchoolClassResponse> page = new PageImpl<>(responses, pageable, total);
+
+                    log.info("[{}] Retrieved {} classes (page {}/{}) for schoolId: {} | schoolCode: {}",
+                            requestId, page.getNumberOfElements(),
+                            page.getNumber() + 1, page.getTotalPages(),
+                            schoolId, schoolCode);
+
+                   return Mono.just(page);
+
+                })
+                .doOnSuccess(page ->
+                        log.info("[{}] Retrieved {} classes (page {}/{}) for schoolId: {}",
+                                requestId, page.getNumberOfElements(),
+                                page.getNumber() + 1, page.getTotalPages(), schoolCode))
+                .onErrorMap(TimeoutException.class,
+                        ex -> new SchoolClassFailureException("Request timeout after 5s", ex))
+                .onErrorMap(error -> {
+                    log.error("[{}] Failed to fetch classes for classId: {}",
+                            requestId, schoolCode, error);
+                    return new SchoolClassFailureException(
+                            "Failed to fetch classes for schoolCode: " + schoolCode, error);
+                });
     }
 
     @Override
-    public Flux<StudentInClassResponse> getStudentInClassByClassId(Long classId, Pageable pageable, String requestId) {
-    return schoolClassRepository
-        .getAllStudentsClass(classId)
-        .collectList()
-        .flatMapMany(
-            rows -> {
-              if (rows.isEmpty()) {
-                return Flux.error(new SchoolClassNotFoundException("No classes found for " + classId));
+    public Mono<Page<StudentInClassResponse>> getStudentInClassByClassId(Long classId, Pageable pageable, String requestId) {
+        int pageSize = pageable.getPageSize();
+        long offset = pageable.getOffset();
+        String sortColumn = getDbSortColumn(pageable.getSort());
+    return Mono.zip(schoolClassRepository
+        .getAllStudentsClass(classId, pageSize, offset, sortColumn).collectList(),
+            schoolClassRepository.countActiveStudentsInClass(classId)
+        )
+            .timeout(Duration.ofSeconds(3))
+            .flatMap(tuple -> {
+
+             List<StudentsInClassRow> studentsInClassRows =   tuple.getT1();
+              long total =  tuple.getT2();
+
+              if (total == 0) {
+                  Page<StudentInClassResponse> emptyPage = Page.empty();
+                  return Mono.just(emptyPage);
               }
-                List<Long> studentId = rows.stream()
-                        .map(StudentsInClassRow::getStudentId)
-                        .toList();
-              return studentClientService.getStudentDetailsBatch(studentId)
-                      .collectList()
-                      .flatMapMany(students -> {
-                          Map<Long, StudentDetailsResponse> lookup = students.stream()
-                                  .collect(Collectors.toMap(StudentDetailsResponse::studentId, studt -> studt));
-                          return  Flux.fromIterable(rows)
-                                  .map(row -> schoolClassMapper.merge(row, lookup.get(row.getStudentId())));
-                      });
+             var responses = studentsInClassRows.stream()
+                      .map(schoolClassMapper::responseFromRows)
+                      .toList();
 
+              Page<StudentInClassResponse> page = new PageImpl<>(responses, pageable, total);
+
+                log.info("[{}] Retrieved {} students (page {}/{}) for classId: {}",
+                        requestId, page.getNumberOfElements(),
+                        page.getNumber() + 1, page.getTotalPages(),
+                        classId);
+
+                return  Mono.just(page);
+            })
+
+            .onErrorMap(TimeoutException.class,
+                    ex -> new SchoolClassFailureException("Database timeout", ex))
+            .onErrorMap(error -> {
+                log.error("[{}] Failed to fetch students for classId: {}",
+                        requestId, classId, error);
+                return  new SchoolClassFailureException("Failed to fetch students", error);
             });
-
     }
+
+  private String getDbSortColumn(Sort sort) {
+    return sort.stream()
+        .findFirst()
+        .map(
+            order ->
+                switch (order.getProperty()) {
+                  case "studentName" -> "student_name";
+                  case "studentNumber" -> "student_number";
+                  case "schoolName" -> "school_name";
+                  default -> "student_name";
+                })
+        .orElse("student_name");
+        }
 }
 

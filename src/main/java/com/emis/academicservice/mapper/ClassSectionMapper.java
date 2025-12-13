@@ -10,9 +10,13 @@ import org.mapstruct.Mapping;
 public interface ClassSectionMapper {
 
     @Mapping(target = "sectionId", ignore = true)
+    @Mapping(target = "schoolId", ignore = true)
+    @Mapping(target = "currentEnrollment", ignore = true)
     @Mapping(target = "createdAt", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "updatedAt", expression = "java(java.time.LocalDateTime.now())")
     ClassSection toEntity(CreateClassSectionRequest request);
 
+    @Mapping(target = "subject", ignore = true)
+    @Mapping(target = "teacherName", ignore = true)
     ClassSectionResponse toResponse(ClassSection classSection);
 }
