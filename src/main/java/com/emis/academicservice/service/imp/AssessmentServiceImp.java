@@ -1,37 +1,51 @@
 package com.emis.academicservice.service.imp;
 
+import com.emis.academicservice.cache.SchoolCacheService;
 import com.emis.academicservice.domain.db.Assessment;
 import com.emis.academicservice.dto.request.CreateAssessmentRequest;
 import com.emis.academicservice.dto.response.AssessmentResponse;
-import com.emis.academicservice.exception.AssessmentCreationException;
-import com.emis.academicservice.exception.DuplicateAssessmentException;
-import com.emis.academicservice.exception.InvalidAssessmentException;
-import com.emis.academicservice.exception.SchoolClassCreationException;
+import com.emis.academicservice.dto.response.ClassSectionResponse;
+import com.emis.academicservice.dto.response.SectionAssessmentsResponse;
+import com.emis.academicservice.enums.AssessmentType;
+import com.emis.academicservice.exception.*;
 import com.emis.academicservice.mapper.AssessmentMapper;
 import com.emis.academicservice.repository.AssessmentRepository;
+import com.emis.academicservice.repository.ClassSectionRepository;
 import com.emis.academicservice.service.AssessmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AssessmentServiceImp implements AssessmentService {
-    private final AssessmentRepository repository;
+
+    private final AssessmentRepository assessmentRepository;
     private final AssessmentMapper mapper;
     private final TransactionalOperator transactionalOperator;
+    private final SchoolCacheService schoolCacheService;
+    private final ClassSectionRepository classSectionRepository;
+
     @Override
     public Mono<AssessmentResponse> createAssessment(CreateAssessmentRequest request, String requestId) {
 
         return transactionalOperator.execute(status ->
                 Mono.defer(() -> {
                     Assessment assessment = mapper.toEntity(request);
-                    return repository.save(assessment);
+                    return assessmentRepository.save(assessment);
                 }))
                 .next()
                 .doOnNext(assessment -> log.info("[{}] Assessment created: id={}, sectionId={}, termId={}",
@@ -50,5 +64,69 @@ public class AssessmentServiceImp implements AssessmentService {
                     log.error("[{}] Assessment creation failed", requestId, ex);
                     return Mono.error(ex);
                 });
+    }
+
+    @Override
+    public Mono<Page<AssessmentResponse>> getAllAssessmentsForClassSection(Long sectionId, String schoolCode,
+                                                                                   AssessmentType assessmentType, String term, Pageable pageable, String requestId) {
+        int size = pageable.getPageSize();
+        long offset = pageable.getOffset();
+
+    return schoolCacheService
+        .getSchoolIdByCode(schoolCode)
+            .switchIfEmpty(Mono.error(new SchoolNotFoundException("School not found for schoolCode" + schoolCode)))
+        .flatMap(
+            schoolId ->
+                classSectionRepository
+                    .findBySectionIdAndSchoolId(sectionId, schoolId)
+                    .switchIfEmpty(
+                        Mono.error(
+                            new ClassSectionNotFoundException(
+                                String.format(
+                                    "Section %d not found in school %s", sectionId, schoolCode))))
+                    .flatMap(
+                        classSection ->
+                            Mono.zip(
+                                assessmentRepository
+                                    .findBySectionIdAndSchoolId(
+                                        sectionId,
+                                        schoolId,
+                                        assessmentType.name(),
+                                        term,
+                                        size,
+                                        offset)
+                                    .collectList(),
+                                assessmentRepository.countBySectionIdAndSchoolId(
+                                    sectionId, schoolId, assessmentType.name(), term))))
+        .timeout(Duration.ofSeconds(3))
+        .flatMap(
+            tuple -> {
+              List<Assessment> assessments = tuple.getT1();
+              long total = tuple.getT2();
+
+              if (total == 0) {
+                Page<AssessmentResponse> emptyPage = Page.empty();
+                return Mono.just(emptyPage);
+              }
+              List<AssessmentResponse> responseList =
+                  assessments.stream().map(mapper::toResponse).toList();
+              return Mono.just(new PageImpl<>(responseList, pageable, total));
+            })
+        .doOnSuccess(
+            page ->
+                log.info(
+                    "[{}] Successfully fetched {} assessments for section {}",
+                    requestId,
+                    page.getTotalElements(),
+                    sectionId))
+        .onErrorMap(
+            TimeoutException.class,
+            ex -> new TimeoutException("Database timeout while fetching assessments"))
+        .onErrorMap(
+            DataAccessException.class,
+            ex -> {
+              log.error("[{}] Database error fetching assessments: {}", requestId, ex.getMessage());
+              return new AssessmentServiceException("Database error occurred", ex);
+            });
     }
 }

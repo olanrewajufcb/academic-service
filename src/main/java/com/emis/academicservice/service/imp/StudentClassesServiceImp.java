@@ -1,19 +1,28 @@
 package com.emis.academicservice.service.imp;
 
+import com.emis.academicservice.cache.SchoolCacheService;
+import com.emis.academicservice.domain.db.Subject;
 import com.emis.academicservice.dto.response.StudentClassesResponses;
+import com.emis.academicservice.dto.response.StudentMarksResponse;
+import com.emis.academicservice.dto.response.SubjectName;
+import com.emis.academicservice.exception.ClassSectionFailureException;
 import com.emis.academicservice.exception.StudentNotFoundException;
-import com.emis.academicservice.repository.SchoolClassRepository;
-import com.emis.academicservice.repository.StudentClassesPerYear;
+import com.emis.academicservice.repository.*;
 import com.emis.academicservice.service.StudentClassesService;
 import com.emis.academicservice.service.client.StudentClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -22,15 +31,19 @@ public class StudentClassesServiceImp implements StudentClassesService {
 
     private final StudentClientService studentClientService;
     private final SchoolClassRepository repository;
+    private final AcademicTermRepository academicTermRepository;
+    private final SubjectRepository subjectRepository;
 
     @Override
-    public Flux<StudentClassesPerYear> getStudentsClasses(String studentNumber, String academicYear,
+    public Flux<StudentClassesPerYear> getStudentsClasses(String studentNumber,
+                                                          String schoolCode,
+                                                          String academicYear,
                                                           Pageable pageable, String requestId) {
 
         int size = pageable.getPageSize();
         long offset = pageable.getPageNumber();
 
-        return studentClientService.getStudentDetails(studentNumber)
+        return studentClientService.getStudentDetails(studentNumber, schoolCode )
                 .flatMapMany(student ->
                         Mono.zip(repository.getStudentClassesPerAcademicYear(academicYear,student.studentId(),
                                 size, offset).collectList(),
@@ -47,4 +60,96 @@ public class StudentClassesServiceImp implements StudentClassesService {
                                 }));
 
     }
+
+  @Override
+  public Mono<Page<StudentMarksResponse>> getStudentMarks(
+      String studentNumber,
+      String schoolCode,
+      String academicYear,
+      Pageable pageable,
+      String requestId) {
+
+    int size = pageable.getPageSize();
+    long offset = pageable.getPageNumber();
+
+    return studentClientService
+        .getStudentDetails(studentNumber, schoolCode)
+        .flatMap(
+            student ->
+                Mono.zip(
+                    academicTermRepository
+                        .getStudentMarks(
+                            student.studentId(), student.schoolId(), academicYear, size, offset)
+                        .collectList(),
+                    academicTermRepository.countStudentMarks(academicYear, student.studentId()),
+                    enrichMarksWithSubjectDetails(student.studentId(), academicYear)))
+        .timeout(Duration.ofSeconds(5))
+        .flatMap(
+            tuple -> {
+              List<StudentMarksResponse> marks = tuple.getT1();
+              long total = tuple.getT2();
+              Map<Long, String> subjectNames = tuple.getT3();
+
+              if (total == 0) {
+                  Page<StudentMarksResponse> emptyPage = Page.empty();
+                return Mono.just(emptyPage);
+              }
+              List<StudentMarksResponse> enrichMarks =
+                  marks.stream()
+                      .map(
+                          mark ->
+                              new StudentMarksResponse(
+                                  mark.termId(),
+                                  mark.startDate(),
+                                  mark.endDate(),
+                                  mark.studentId(),
+                                  mark.sectionId(),
+                                  mark.subjectId(),
+                                  mark.totalScore(),
+                                  mark.averageScore(),
+                                  mark.positionInClass(),
+                                  mark.remarks(),
+                                  subjectNames.getOrDefault(mark.subjectId(), "Unknown Subject"),
+                                  null))
+                      .toList();
+              Page<StudentMarksResponse> pageResponse = new PageImpl<>(enrichMarks, pageable, total);
+
+              return Mono.just(pageResponse);
+            })
+        .doOnSuccess(
+            page ->
+                log.info(
+                    "[{}] Retrieved {} student marks (page {}/{}) for studentNumber: {}",
+                    requestId,
+                    page.getNumberOfElements(),
+                    page.getNumber() + 1,
+                    page.getTotalPages(),
+                    studentNumber))
+        .onErrorMap(
+            TimeoutException.class, ex -> new TimeoutException("Request timeout after 5s"))
+        .onErrorResume(
+            ex -> {
+              log.error(
+                  "[{}] Failed to fetch student marks for studentNumber: {}",
+                  requestId,
+                  studentNumber,
+                  ex);
+              return Mono.error(new ClassSectionFailureException(
+                  "Failed to fetch student marks for studentNumber: " + studentNumber, ex));
+            });
+        }
+
+  private Mono<Map<Long, String>> enrichMarksWithSubjectDetails(
+      Long studentId, String academicYear) {
+        return academicTermRepository.getStudentSubjectIds(studentId, academicYear)
+                .collectList()
+            .flatMap(subjectIds -> {
+                if (subjectIds.isEmpty()){
+                    return Mono.just(Map.of());
+                }
+                return subjectRepository.findNamesByIds(subjectIds)
+                        .collectMap(SubjectName::subjectId, SubjectName::name);
+            });
+        }
+
 }

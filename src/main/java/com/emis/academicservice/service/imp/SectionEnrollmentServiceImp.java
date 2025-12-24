@@ -40,7 +40,7 @@ public class SectionEnrollmentServiceImp implements SectionEnrollmentService {
                         .switchIfEmpty(Mono.error(new InvalidEnrollmentException(
                                 "Section " + sectionId + " not found for school '" + request.getSchoolCode() + "'")))
                         .flatMap(validation ->
-                                studentClientService.getStudentDetails(request.getStudentNumber())
+                                studentClientService.getStudentDetails(request.getStudentNumber(),request.getSchoolCode())
                                         .timeout(Duration.ofSeconds(3))
                                         .flatMap(student -> {
                                             if (!request.getSchoolCode().equals(student.schoolCode())) {

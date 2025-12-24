@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Table(name = "markbook_entries")
-public class MarkbookEntry {
+public class MarkBookEntry {
     @Id
     private Long markEntryId;
     private Long assessmentId;

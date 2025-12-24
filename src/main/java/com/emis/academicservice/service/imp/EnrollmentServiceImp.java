@@ -39,7 +39,7 @@ public class EnrollmentServiceImp implements EnrollmentService {
                         .switchIfEmpty(Mono.error(new SchoolClassNotFoundException(
                                 "Class not found: " + request.getClassId())))
                         .flatMap(classProjection ->
-                                studentClientService.getStudentDetails(request.getStudentNumber())
+                                studentClientService.getStudentDetails(request.getStudentNumber(), request.getSchoolCode())
                         .flatMap(student ->
                                 enrollmentRepository.existsByStudentIdAndClassId(student.studentId(), request.getClassId())
                                         .flatMap(exists ->

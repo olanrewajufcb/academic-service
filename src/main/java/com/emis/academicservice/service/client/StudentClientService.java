@@ -7,10 +7,12 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 public interface StudentClientService {
-    Mono<StudentDetailsResponse> getStudentDetails(String studentNumber);
+    Mono<StudentDetailsResponse> getStudentDetails(String studentNumber, String schoolCode);
 
     Flux<StudentDetailsResponse> getStudentDetails(Long studentId);
 
     Flux<StudentDetailsResponse> getStudentDetailsBatch(List<Long> studentIds);
+
+    Mono<StudentDetailsResponse> getStudentByIdAndSchoolId(Long studentId, String schoolCode);
 
 }

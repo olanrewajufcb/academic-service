@@ -24,10 +24,11 @@ public class StudentClientServiceImp implements StudentClientService {
     private final ServiceConfigurationProperties properties;
 
     @Override
-    public Mono<StudentDetailsResponse> getStudentDetails(String studentNumber) {
+    public Mono<StudentDetailsResponse> getStudentDetails(String studentNumber, String schoolCode) {
         var url = properties.getStudentConfiguration().getGetStudentDetailsUrl();
         var pathVariable = new ConcurrentHashMap<String, String>();
         pathVariable.put("studentNumber", studentNumber);
+        pathVariable.put("schoolCode", schoolCode);
     return client
         .getRequestWithPathVariables(
             url, pathVariable, ClientHelper.getHeaders(), StudentDetailsResponse.class)
@@ -122,5 +123,50 @@ public class StudentClientServiceImp implements StudentClientService {
                     return response;
                 });
     }
+
+    @Override
+    public Mono<StudentDetailsResponse> getStudentByIdAndSchoolId(Long studentId, String schoolId) {
+        var url = properties.getStudentConfiguration().getGetStudentDetailsUrl();
+        var pathVariable = new ConcurrentHashMap<String, String>();
+        pathVariable.put("studentId", String.valueOf(studentId));
+        pathVariable.put("schoolId", schoolId);
+        return client
+                .getRequestWithPathVariables(
+                        url, pathVariable, ClientHelper.getHeaders(), StudentDetailsResponse.class)
+                .map(
+                        response -> {
+                            log.info("Student Details Response: {}", response);
+                            return response;
+                        })
+                .onErrorMap(
+                        WebClientResponseException.NotFound.class,
+                        err -> {
+                            log.error(
+                                    "Exception occurred while trying to get school details for schoolId: {}",
+                                    studentId,
+                                    err);
+                            return new StudentNotFoundException("Student not found for : " + studentId);
+                        })
+                .onErrorMap(
+                        WebClientResponseException.class,
+                        err -> {
+                            log.error(
+                                    "Exception occurred while trying to get student details for schoolId: {}",
+                                    studentId,
+                                    err);
+                            return new SchoolServiceUnavailableException(
+                                    "Student service error: " + err.getStatusCode(), err.getResponseBodyAsString());
+                        })
+                .onErrorMap(
+                        Exception.class,
+                        err -> {
+                            log.error(
+                                    "Unexpected exception occurred while trying to get student details for schoolId: {}",
+                                    studentId,
+                                    err);
+                            return new SchoolServiceUnavailableException(
+                                    "Unexpected error occurred while fetching student details" + err.getMessage(),
+                                    err);
+                        });    }
 
 }

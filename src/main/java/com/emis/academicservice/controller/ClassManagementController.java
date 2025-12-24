@@ -75,7 +75,7 @@ public class ClassManagementController {
         String requestId = UUID.randomUUID().toString();
 
         return service.getSchoolClassBySchoolId(schoolCode, academicYear,pageRequest, requestId)
-                .doOnSubscribe(sub -> log.info("Creating school class with id {}", requestId))
+                .doOnSubscribe(sub -> log.info("Retrieving school class with id {}", requestId))
                 .contextWrite(ctx -> ctx.put(REQUEST_ID, requestId));
 
 

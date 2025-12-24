@@ -1,20 +1,23 @@
 package com.emis.academicservice.dto.response;
 
 import com.emis.academicservice.enums.AssessmentType;
-import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-@Data
-public class AssessmentResponse {
-    private Long assessmentId;
-    private Long sectionId;
-    private Long termId;
-    private String name;
-    private AssessmentType type;
-    private String description;
-    private BigDecimal maxScore;
-    private BigDecimal weight;
-    private LocalDate dueDate;
-}
+public record AssessmentResponse(
+    Long assessmentId,
+    String name,
+    AssessmentType assessmentType,
+    String description,
+    BigDecimal maxScore,
+    BigDecimal weight,
+    LocalDate dueDate,
+    Integer totalStudents,
+    Integer gradedStudents,
+    BigDecimal averageScore,
+    LocalDateTime createdAt,
+    Long createdBy,
+    String createdByName
+) {}

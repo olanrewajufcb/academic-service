@@ -30,6 +30,10 @@ CREATE TYPE assessment_type_type AS ENUM (
     'EXAM', 'TEST', 'ASSIGNMENT', 'PROJECT', 'PRACTICAL', 'PARTICIPATION'
 );
 
+CREATE TYPE assessment_status_type AS ENUM (
+    'PENDING', 'IN_PROGRESS', 'COMPLETED', 'REJECTED', 'CANCELLED', 'APPROVED', 'FAILED'
+);
+
 -- 1. SUBJECTS
 CREATE TABLE subjects (
                           subject_id BIGSERIAL PRIMARY KEY,
@@ -49,15 +53,23 @@ CREATE TABLE subjects (
 CREATE TABLE school_classes (
                                 class_id BIGSERIAL PRIMARY KEY,
                                 school_id BIGINT NOT NULL,  -- External FK
-                                school_code BIGINT NOT NULL default '',
-                                school_name VARCHAR(50) NOT NULL  default '',
+                                school_code BIGINT NOT NULL default '',   -- Denormalized for performance
+                                school_name VARCHAR(50) NOT NULL  default '',   -- Denormalized for performance
+                                school_validated BOOLEAN DEFAULT FALSE,
+                                last_school_validation TIMESTAMPTZ,
                                 class_name VARCHAR(50) NOT NULL,
+                                class_code VARCHAR(20) GENERATED ALWAYS AS (
+                                    school_code || '-' ||
+                                    REPLACE(LOWER(class_name), ' ', '-') || '-' ||
+                                    SUBSTRING(academic_year FROM 1 FOR 4)
+                                    ) STORED,
                                 class_level class_level_type NOT NULL,
                                 arm VARCHAR(20),
                                 stage school_stage_type NOT NULL,
                                 academic_year VARCHAR(10) NOT NULL,
                                 form_teacher_id BIGINT,  -- External FK (HR service)
-                                form_teacher_name VARCHAR(50), -- denormalized (XTner Hr SVC)
+                                form_teacher_name VARCHAR(50) DEFAULT '', -- denormalized (XTner Hr SVC)
+                                form_teacher_validated BOOLEAN DEFAULT FALSE,
                                 max_students INTEGER NOT NULL DEFAULT 50,
                                 current_students INTEGER NOT NULL DEFAULT 0 CHECK (current_students >= 0),
                                 created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -70,13 +82,19 @@ CREATE TABLE school_classes (
 CREATE TABLE class_sections (
                                 section_id BIGSERIAL PRIMARY KEY,
                                 school_id BIGINT NOT NULL,  -- Denormalized for performance
+                                school_code VARCHAR(20) NOT NULL DEFAULT '',
+
                                 class_id BIGINT NOT NULL REFERENCES school_classes(class_id) ON DELETE CASCADE,   --  FK (to school_classes, same service)
                                 subject_id BIGINT NOT NULL REFERENCES subjects(subject_id) ON DELETE CASCADE, --  FK (to subjects, same service)
                                 teacher_id BIGINT,          --  FK (HR service)
+                                teacher_name VARCHAR(100) DEFAULT '',
+                                teacher_validated BOOLEAN DEFAULT FALSE,
+
                                 room VARCHAR(20),
                                 schedule VARCHAR(100),
                                 max_capacity INTEGER NOT NULL DEFAULT 50 CHECK (max_capacity > 0),
                                 current_enrollment INTEGER NOT NULL DEFAULT 0 CHECK (current_enrollment >= 0),
+                                academic_term VARCHAR(20), -- "First Term 2024"
                                 created_at TIMESTAMPTZ DEFAULT NOW(),
                                 updated_at TIMESTAMPTZ DEFAULT NOW(),
                                 UNIQUE(class_id, subject_id),
@@ -121,6 +139,7 @@ CREATE TABLE assessments (
                             max_score NUMERIC(5,2) NOT NULL CHECK (max_score > 0),
                             weight NUMERIC(3,2) DEFAULT 1.00 CHECK (weight >= 0 AND weight <= 1),
                             due_date DATE,
+                            status assessment_status_type DEFAULT 'PENDING' NOT NULL,
                             created_at TIMESTAMPTZ DEFAULT NOW()
                             ADD CONSTRAINT uk_section_term_name
                             UNIQUE (section_id, term_id, name)

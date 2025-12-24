@@ -18,7 +18,7 @@ public class CreateAssessmentRequest {
     @NotNull(message = "termId is required.")
     private Long termId;
     private String name;
-    private AssessmentType type;
+    private AssessmentType assessmentType;
     private String description;
     @NotNull
     @DecimalMin(value = "0.01", message = "maxScore must be > 0")

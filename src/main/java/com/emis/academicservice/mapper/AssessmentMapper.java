@@ -15,5 +15,7 @@ public interface AssessmentMapper {
     @Mapping(target = "updatedAt", ignore = true)
     Assessment toEntity(CreateAssessmentRequest request);
 
-    AssessmentResponse toResponse(Assessment entity);
+    AssessmentResponse toResponse(Assessment assessment);
+
+
 }
