@@ -20,7 +20,7 @@ public interface SchoolClassRepository extends R2dbcRepository<SchoolClass, Long
 
   @Query(
       """
-            SELECT class_id, school_id, class_name, class_level, arm, academic_year,
+            SELECT class_id, school_id, class_name, grade_level, arm, academic_year,
             form_teacher_id, max_students, current_students, created_at, updated_at
             FROM school_classes WHERE school_id = :schoolId AND academic_year = :academicYear
             ORDER BY class_id LIMIT :size OFFSET :offset
@@ -36,7 +36,7 @@ public interface SchoolClassRepository extends R2dbcRepository<SchoolClass, Long
         SELECT 
             sc.class_id, 
             sc.class_name, 
-            sc.class_level, 
+            sc.grade_level, 
             sc.arm,
             STRING_AGG(s.name, ', ') AS subjects
         FROM school_classes AS sc
@@ -45,7 +45,7 @@ public interface SchoolClassRepository extends R2dbcRepository<SchoolClass, Long
         JOIN sujects s ON cs.subject_id = s.suject_id
         WHERE sc.academic_year  = $1
         AND se.student_id = $2
-        GROUP BY sc.class_id, sc.class_name, sc.class_level, sc.arm
+        GROUP BY sc.class_id, sc.class_name, sc.grade_level, sc.arm
         ORDER BY sc.class_name
         LIMIT $3 OFFSET $4
     """)
@@ -73,7 +73,7 @@ public interface SchoolClassRepository extends R2dbcRepository<SchoolClass, Long
                sc.class_id AS classId,
                sc.form_teacher_id AS formTeacherId,
                sc.class_name AS className,
-               sc.class_level AS classLevel
+               sc.grade_level AS gradeLevel
                sc.arm AS arm
         FROM enrollments e
         JOIN school_classes sc ON sc.class_id = e.class_id
@@ -104,7 +104,7 @@ public interface SchoolClassRepository extends R2dbcRepository<SchoolClass, Long
     @Query("""
     SELECT 
         sc.class_id, sc.school_id, sc.school_code, sc.academic_year,
-        sc.class_name, sc.class_level
+        sc.class_name, sc.grade_level
     FROM school_classes sc
     WHERE sc.school_code = $1 
       AND sc.class_id = $2

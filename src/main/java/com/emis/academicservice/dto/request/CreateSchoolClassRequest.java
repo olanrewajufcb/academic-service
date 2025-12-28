@@ -10,7 +10,7 @@ public class CreateSchoolClassRequest {
     private String schoolCode;
     private String schoolName;
     private String className;
-    private String classLevel;
+    private String gradeLevel;
     private String arm;
     private String stage;
     private String academicYear;

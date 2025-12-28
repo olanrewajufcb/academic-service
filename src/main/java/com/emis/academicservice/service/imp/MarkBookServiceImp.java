@@ -190,7 +190,7 @@ public class MarkBookServiceImp implements MarkBookService {
                                         entry,
                                         student.studentNumber(),
                                         student.fullName(),
-                                        student.classLevel()
+                                        student.gradeLevel()
                                 ))
                                 .onErrorResume(e -> {
                                     log.warn("Could not fetch student {} details: {}", entry.studentId(), e.getMessage());

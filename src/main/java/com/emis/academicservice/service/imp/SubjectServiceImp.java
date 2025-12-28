@@ -72,36 +72,32 @@ public class SubjectServiceImp implements SubjectService {
                         });
     }
 
-    public Mono<Page<SubjectResponse>> getSubjectBySchoolAndClassLevel(String schoolCode, String classLevel, Pageable pageable, String requestId) {
+    public Mono<Page<SubjectResponse>> getSubjectBySchoolAndClassLevel(String schoolCode, String gradeLevel, Pageable pageable, String requestId) {
 
-    return schoolCacheService
-        .getSchoolIdByCode(schoolCode)
-            .switchIfEmpty(Mono.error(new SchoolNotFoundException("School not found for " + schoolCode)))
-        .flatMap(schoolId -> Mono.zip(
-                subjectRepository.findBySchoolIdAndClassLevel(
-                    schoolId, classLevel, pageable.getPageSize(), pageable.getOffset()).collectList(),
-                    subjectRepository.countBySchoolIdAndClassLevel(schoolId, classLevel))
-                .timeout(Duration.ofSeconds(3))
+        return schoolCacheService
+                .getSchoolIdByCode(schoolCode)
+                .switchIfEmpty(Mono.error(new SchoolNotFoundException("School not found for " + schoolCode)))
+                .flatMap(schoolId -> Mono.zip(
+                                subjectRepository.findBySchoolIdAndGradeLevel(
+                                        schoolId, gradeLevel, pageable.getPageSize(), pageable.getOffset()).collectList(),
+                                subjectRepository.countBySchoolIdAndClassLevel(schoolId, gradeLevel))
+                        .timeout(Duration.ofSeconds(3))
+                        .map(tuple -> {
+                            List<Subject> subjects = tuple.getT1();
+                            long total = tuple.getT2();
 
-                            .flatMap(tuple -> {
-                                List<Subject> subjects = tuple.getT1();
-                                long total = tuple.getT2();
-                                if (total == 0) {
-                                    Page<SubjectResponse> page = Page.empty();
-                                    return Mono.just(page);
-                                }
-                                List<SubjectResponse> responses = subjects.stream().map(subjectMapper::toResponse)
-                                        .toList();
-                                Page<SubjectResponse> page = new PageImpl<>(responses, pageable, total);
-                                return Mono.just(page);
-                            }))
-            .onErrorMap(TimeoutException.class,
-                    ex -> new SchoolClassFailureException("Database timeout", ex))
-            .onErrorMap(error -> {
-                log.error("[{}] Failed to fetch subjects for schoolId: {}",
-                        requestId, schoolCode, error);
-                return  new SchoolClassFailureException("Failed to fetch subjects", error);
-            });
+                            List<SubjectResponse> responses = total == 0
+                                    ? List.of()
+                                    : subjects.stream().map(subjectMapper::toResponse).toList();
 
+                            return (Page<SubjectResponse>) new PageImpl<>(responses, pageable, total);
+                        }))
+                .doOnError(error -> log.error("[{}] Error fetching subjects for school {}: {}",
+                        requestId, schoolCode, error.getMessage()))
+                .onErrorMap(TimeoutException.class,
+                        ex -> new SchoolClassFailureException("Database timeout", ex))
+                // Only map to generic failure if it's not already a known domain exception
+                .onErrorMap(error -> !(error instanceof SchoolNotFoundException || error instanceof SchoolClassFailureException),
+                        error -> new SchoolClassFailureException("Failed to fetch subjects", error));
     }
 }

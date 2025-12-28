@@ -6,5 +6,5 @@ public interface SchoolClassProjection {
     String getSchoolCode();
     String getAcademicYear();
     String getClassName();
-    String getClassLevel();
+    String getGradeLevel();
 }

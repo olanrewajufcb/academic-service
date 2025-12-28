@@ -11,5 +11,5 @@ public interface SubjectService {
 
     Mono<SubjectResponse> registerSubject(RegisterSubjectRequest request, String requestId);
 
-    Mono<Page<SubjectResponse>> getSubjectBySchoolAndClassLevel(String schoolCode, String classLevel, Pageable pageable, String requestId);
+    Mono<Page<SubjectResponse>> getSubjectBySchoolAndClassLevel(String schoolCode, String gradeLevel, Pageable pageable, String requestId);
 }

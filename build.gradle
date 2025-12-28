@@ -51,6 +51,8 @@ dependencies {
 
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.0'
 
+    implementation 'org.flywaydb:flyway-core'
+    runtimeOnly 'org.flywaydb:flyway-database-postgresql'
 
 
 

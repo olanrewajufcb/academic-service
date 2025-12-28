@@ -18,15 +18,15 @@ public interface SubjectRepository extends R2dbcRepository<Subject, Long> {
     Mono<Subject> findBySchoolIdAndCode(Long schoolId, String subjectCode);
 
     @Query("""
-         SELECT * FROM subjects WHERE school_id = :schoolId AND class_level = :classLevel
+         SELECT * FROM subjects WHERE school_id = :schoolId AND grade_level = :gradeLevel
          ORDER BY subject_id LIMIT :size OFFSET :offset
  """)
-    Flux<Subject> findBySchoolIdAndClassLevel(Long schoolId, String classLevel, int size, long offset);
+    Flux<Subject> findBySchoolIdAndGradeLevel(Long schoolId, String gradeLevel, int size, long offset);
 
-    @Query("SELECT COUNT(*) FROM subjects WHERE school_id = :schoolId AND class_level = :classLevel")
+    @Query("SELECT COUNT(*) FROM subjects WHERE school_id = :schoolId AND grade_level = :gradeLevel")
     Mono<Long> countBySchoolIdAndClassLevel(
             @Param("schoolId") Long schoolId,
-            @Param("classLevel") String classLevel
+            @Param("gradeLevel") String gradeLevel
     );
 
     @Query("SELECT subject_id, name FROM subjects WHERE subject_id IN (:ids)")

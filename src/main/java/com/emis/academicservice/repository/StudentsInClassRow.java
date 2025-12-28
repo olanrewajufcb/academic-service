@@ -9,7 +9,7 @@ public interface StudentsInClassRow {
     String getStudentName();
     Long getClassId();
     String getClassName();
-    String getClassLevel();        // e.g., "JSS_1"
+    String getGradeLevel();        // e.g., "JSS_1"
     Long getFormTeacherId();
     String getArm();
     String getAcademicYear();

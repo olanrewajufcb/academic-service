@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 public class SchoolClassResponse {
     private Long classId;
     private String className;
-    private String classLevel;
+    private String gradeLevel;
     private String arm;
     private String academicYear;
     private Long formTeacherId;

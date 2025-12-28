@@ -9,7 +9,7 @@ public class StudentClassesResponses {
     private Long schoolId;
     private Long formTeacherId;
     private String className;
-    private String classLevel;
+    private String gradeLevel;
     private String arm;
     private String academicYear;
     private Long studentId;

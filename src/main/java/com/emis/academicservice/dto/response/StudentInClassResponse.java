@@ -15,7 +15,7 @@ public class StudentInClassResponse {
     private SchoolLevel level;
     private Long classId;
     private String className;
-    private String classLevel;
+    private String gradeLevel;
     private Long formTeacherId;
     private String arm;
     private String academicYear;

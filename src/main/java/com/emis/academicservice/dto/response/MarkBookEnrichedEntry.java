@@ -4,5 +4,5 @@ public record MarkBookEnrichedEntry(
     MarkBookEntryDetail entry,
     String studentNumber,
     String studentName,
-    String classLevel
+    String gradeLevel
 ) {}

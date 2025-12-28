@@ -3,7 +3,7 @@ package com.emis.academicservice.repository;
 public interface StudentClassesPerYear {
     Long getClassId();
     String getClassName();
-    String getClassLevel();
+    String getGradeLevel();
     String getArm();
     String getSubjects();
 }

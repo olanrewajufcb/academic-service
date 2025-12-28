@@ -1,5 +1,6 @@
 package com.emis.academicservice.domain.db;
 
+import com.emis.academicservice.enums.GradeLevel;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
@@ -19,7 +20,7 @@ public class SchoolClass {
     private Long formTeacherId;
     private String formTeacherName;
     private String className;
-    private String classLevel;
+    private GradeLevel gradeLevel;
     private String arm;
     private String stage;
     private String academicYear;

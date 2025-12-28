@@ -5,11 +5,27 @@ spring:
   r2dbc:
     username: user
     password: password
-    url: r2dbc:postgresql://localhost:5432/emis_db
+    properties:
+      schema: student_schema
+    url: r2dbc:postgresql://${DB_HOST:localhost}:5432/emis_db
     pool:
       max-create-connection-time: 2s
       initial-size: 5
       max-size: 10
+
+  flyway:
+    user: ${spring.r2dbc.username}
+    password: ${spring.r2dbc.password}
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/emis_db
+    schemas: academic_schema
+    default-schema: academic_schema
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: false
+    out-of-order: true
+
+
 
 #  security:
 #    oauth2:
@@ -50,6 +66,8 @@ logging:
     org.springframework.validation: DEBUG
     org.springframework.web.reactive.result.method.annotation: DEBUG
     io.r2dbc.postgresql.QUERY: DEBUG
+    org.flywaydb: DEBUG
+
 
 emis:
   services:

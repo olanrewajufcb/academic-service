@@ -51,8 +51,8 @@ public class SubjectController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public Mono<Page<SubjectResponse>> getSubjectBySchoolAndClassLevel(@RequestParam String schoolCode,
-                                                                      @RequestParam String classLevel, @RequestParam(defaultValue = "0")
+    public Mono<Page<SubjectResponse>> getSubjectBySchoolAndGradeLevel(@RequestParam String schoolCode,
+                                                                      @RequestParam String gradeLevel, @RequestParam(defaultValue = "0")
     @Min(value = 0, message = "page must not be less than 0")
     int page,
                                                                       @RequestParam(defaultValue = "10")
@@ -69,7 +69,7 @@ public class SubjectController {
 
         String requestId = UUID.randomUUID().toString();
 
-        return service.getSubjectBySchoolAndClassLevel(schoolCode, classLevel,pageRequest, requestId)
+        return service.getSubjectBySchoolAndClassLevel(schoolCode, gradeLevel,pageRequest, requestId)
                 .doOnSubscribe(sub -> log.info("Retrieving subjects with id {}", requestId))
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
 

@@ -11,7 +11,7 @@ public class SubjectResponse {
     private String subjectCode;
     private String name;
     private String description;
-    private String classLevel;
+    private String gradeLevel;
     private String status;
     private LocalDateTime createdAt;
 }

@@ -21,7 +21,7 @@ public class Subject {
     private String subjectCode;
     private String name;
     private String description;
-    private String classLevel;
+    private String gradeLevel;
     private SubjectStatus status;
     private Boolean schoolValidated;
     private LocalDateTime lastSchoolValidation;

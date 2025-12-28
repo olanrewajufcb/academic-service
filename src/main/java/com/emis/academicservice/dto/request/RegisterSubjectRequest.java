@@ -21,8 +21,8 @@ public class RegisterSubjectRequest {
     private String name;
     private String description;
     @NotNull
-    @NotBlank(message = "class level is required")
-    private String classLevel;
+    @NotBlank(message = "grade level is required")
+    private String gradeLevel;
     private SubjectStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

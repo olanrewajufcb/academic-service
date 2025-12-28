@@ -27,20 +27,9 @@ public interface SchoolClassMapper {
 
     SchoolClassResponse toResponse(SchoolClass schoolClass);
 
-//    @Mapping(target = "name", source = "student.fullName")
-//    @Mapping(target = "schoolId", source = "student.schoolId")
-//    @Mapping(target = "classId", source = "row.classId")
-//    @Mapping(target = "className", source = "row.className")
-//    @Mapping(target = "classLevel", source = "row.classLevel")
-//    @Mapping(target = "formTeacherId", ignore = true)
-//    @Mapping(target = "arm", ignore = true)
-//    @Mapping(target = "academicYear", ignore = true)
-//    @Mapping(target = "type", ignore = true)  // can set later if needed
-//    @Mapping(target = "level", ignore = true)
-//    StudentInClassResponse merge(StudentsInClassRow row, StudentDetailsResponse student);
 
     @Mapping(target = "type", source = "schoolCode", qualifiedByName = "toSchoolType")
-    @Mapping(target = "level", source = "classLevel", qualifiedByName = "toSchoolLevel")
+    @Mapping(target = "level", source = "gradeLevel", qualifiedByName = "toSchoolLevel")
     StudentInClassResponse responseFromRows(StudentsInClassRow row);
 
     @Named("toSchoolType")
@@ -54,11 +43,11 @@ public interface SchoolClassMapper {
     }
 
     @Named("toSchoolLevel")
-    default SchoolLevel toSchoolLevel(String classLevel) {
-        if (classLevel == null) return null;
+    default SchoolLevel toSchoolLevel(String gradeLevel) {
+        if (gradeLevel == null) return null;
         try {
             return SchoolLevel.valueOf(
-                    classLevel.trim().toUpperCase().replace(" ", "_")
+                    gradeLevel.trim().toUpperCase().replace(" ", "_")
             );
         } catch (IllegalArgumentException e) {
             return SchoolLevel.PRIMARY;
