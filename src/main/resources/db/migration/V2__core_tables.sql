@@ -3,7 +3,6 @@
 -- Microservices: No FKs to external services
 -- =============================================
 
-
 -- 9. ACADEMIC_TERM
 CREATE TABLE academic_schema.academic_term (
                                                term_id BIGSERIAL PRIMARY KEY,
@@ -16,7 +15,6 @@ CREATE TABLE academic_schema.academic_term (
                                                deleted_at TIMESTAMPTZ DEFAULT NULL,
                                                created_at TIMESTAMPTZ DEFAULT NOW(),
                                                updated_at TIMESTAMPTZ DEFAULT NOW(),
-                                               UNIQUE(school_id, term_code, deleted_at),
                                                CHECK (start_date < end_date)
 );
 
@@ -82,7 +80,7 @@ CREATE TABLE academic_schema.class_sections (
                                                 schedule VARCHAR(100),
                                                 max_capacity INTEGER NOT NULL DEFAULT 50 CHECK (max_capacity > 0),
                                                 current_enrollment INTEGER NOT NULL DEFAULT 0 CHECK (current_enrollment >= 0),
-                                                academic_term VARCHAR(20), -- "First Term 2024"
+                                                term_id BIGINT NOT NULL REFERENCES academic_schema.academic_term(term_id) ON DELETE RESTRICT,  -- "First Term 2024"
                                                 deleted_at TIMESTAMPTZ DEFAULT NULL,
                                                 created_at TIMESTAMPTZ DEFAULT NOW(),
                                                 updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -94,8 +92,8 @@ CREATE TABLE academic_schema.class_sections (
 CREATE TABLE academic_schema.enrollments (
                                              enrollment_id BIGSERIAL PRIMARY KEY,
                                              student_id BIGINT NOT NULL, -- External FK (Student service)
-                                             student_number VARCHAR(50),
-                                             student_name VARCHAR(50),
+                                             student_number VARCHAR(50) NOT NULL,
+                                             student_name VARCHAR(50) NOT NULL,
                                              class_id BIGINT NOT NULL REFERENCES academic_schema.school_classes(class_id) ON DELETE RESTRICT,   -- No cascade
                                              enrollment_date TIMESTAMPTZ DEFAULT NOW(),
                                              enrollment_status enrollment_status_type DEFAULT 'ENROLLED' NOT NULL,
@@ -104,8 +102,7 @@ CREATE TABLE academic_schema.enrollments (
                                              rejection_reason VARCHAR(100),
                                              deleted_at TIMESTAMPTZ DEFAULT NULL,
                                              created_at TIMESTAMPTZ DEFAULT NOW(),
-                                             updated_at TIMESTAMPTZ DEFAULT NOW(),
-                                             UNIQUE(student_id, class_id, deleted_at)
+                                             updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 5. SECTION_ENROLLMENT
@@ -164,7 +161,9 @@ CREATE TABLE academic_schema.attendance (
                                             recorded_by BIGINT,  -- External FK (staff ID)
                                             deleted_at TIMESTAMPTZ DEFAULT NULL,
                                             created_at TIMESTAMPTZ DEFAULT NOW(),
-                                            UNIQUE(section_id, student_id, attendance_date, deleted_at)
+                                            UNIQUE(section_id, student_id, attendance_date, deleted_at),
+                                            CHECK (attendance_date <= CURRENT_DATE)
+
 );
 
 -- 10. TERM_SCORES
@@ -179,6 +178,8 @@ CREATE TABLE academic_schema.term_scores (
                                              remarks TEXT,
                                              deleted_at TIMESTAMPTZ DEFAULT NULL,
                                              calculated_at TIMESTAMPTZ DEFAULT NOW(),
-                                             UNIQUE(student_id, section_id, term_id, deleted_at)
+                                             UNIQUE(student_id, section_id, term_id, deleted_at),
+                                             CHECK (total_score BETWEEN 0 AND 100)
+
 );
 

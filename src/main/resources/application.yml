@@ -3,27 +3,27 @@ spring:
     name: academic-service
 
   r2dbc:
-    username: user
-    password: password
+    username: academic_user
+    password: ${ACADEMIC_DB_PASSWORD:academic_pwd}
     properties:
-      schema: student_schema
-    url: r2dbc:postgresql://${DB_HOST:localhost}:5432/emis_db
+      schema: academic_schema
+    url: r2dbc:postgresql://${DB_HOST:localhost}:5432/emis_db?schema=academic_schema
     pool:
       max-create-connection-time: 2s
       initial-size: 5
       max-size: 10
 
   flyway:
-    user: ${spring.r2dbc.username}
-    password: ${spring.r2dbc.password}
+    user: academic_user
+    password: ${FLYWAY_DB_PASSWORD:academic_pwd}
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/emis_db
     schemas: academic_schema
     default-schema: academic_schema
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
-    validate-on-migrate: false
-    out-of-order: true
+    validate-on-migrate: true
+    out-of-order: false
 
 
 
@@ -74,4 +74,4 @@ emis:
     configuration:
       base-url: ${EMIS_SERVICE_URL:http://localhost:8082}
       get-school-details-url: ${emis.services.configuration.base-url}/api/v1/schools/{schoolCode}
-      validate-school-exists-url: ${emis.service.configuration.base-url}/schools/validate/{schoolCode}
+      validate-school-exists-url: ${emis.services.configuration.base-url}/schools/validate/{schoolCode}

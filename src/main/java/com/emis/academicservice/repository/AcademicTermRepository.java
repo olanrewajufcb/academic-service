@@ -16,7 +16,7 @@ SELECT
        at.start_date,
        at.end_date,
        cs.school_id,
-       cs.academic_term,
+       cs.term_id,
        cs.subject_id,
        ts.student_id,
        ts.section_id,

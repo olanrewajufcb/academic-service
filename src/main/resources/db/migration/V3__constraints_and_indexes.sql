@@ -3,7 +3,6 @@
 -- Microservices: No FKs to external services
 -- =============================================
 
-
 -- =============================================
 -- Indexes (Optimized for Microservices with Soft Delete)
 -- =============================================
@@ -41,9 +40,7 @@ CREATE INDEX idx_section_enrollment_section_not_deleted
 CREATE INDEX idx_attendance_student_date_not_deleted
     ON academic_schema.attendance(student_id, attendance_date)
     WHERE deleted_at IS NULL;
-CREATE INDEX idx_attendance_section_date_not_deleted
-    ON academic_schema.attendance(section_id, attendance_date)
-    WHERE deleted_at IS NULL;
+
 CREATE INDEX idx_enrollments_class_active_name_not_deleted
     ON academic_schema.enrollments(class_id, enrollment_status, student_name)
     INCLUDE (student_id, student_number, student_name)
@@ -81,3 +78,10 @@ CREATE INDEX idx_attendance_section_date_active
     WHERE deleted_at IS NULL;
 
 
+CREATE UNIQUE INDEX uk_enrollment_active
+    ON academic_schema.enrollments (student_id, class_id)
+    WHERE deleted_at IS NULL AND enrollment_status = 'ENROLLED';
+
+CREATE UNIQUE INDEX uk_academic_term_active
+    ON academic_schema.academic_term (school_id, term_code)
+    WHERE deleted_at IS NULL;
