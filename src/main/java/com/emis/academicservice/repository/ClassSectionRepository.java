@@ -37,7 +37,7 @@ public interface ClassSectionRepository extends R2dbcRepository<ClassSection, Lo
     """)
     Flux<ClassSection> findPageByClassId(Long classId, String sortBy, int limit, long offset);
 
-    @Query("SELECT COUNT(*) FROM class_sections WHERE class_id = $1")
+    @Query("SELECT COUNT(*) FROM class_sections WHERE class_id = $1 AND is_deleted = FALSE")
     Mono<Long> countByClassId(Long classId);
 
     Mono<SchoolClass> findBySchoolIdAndClassId(Long schoolId, Long classId);

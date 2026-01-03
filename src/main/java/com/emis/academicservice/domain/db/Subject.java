@@ -1,6 +1,8 @@
 package com.emis.academicservice.domain.db;
 
 
+import com.emis.academicservice.enums.GradeLevel;
+import com.emis.academicservice.enums.SchoolStage;
 import com.emis.academicservice.enums.SubjectStatus;
 import lombok.Builder;
 import lombok.Data;
@@ -21,10 +23,13 @@ public class Subject {
     private String subjectCode;
     private String name;
     private String description;
-    private String gradeLevel;
+    private GradeLevel gradeLevel;
+    private SchoolStage stage;
     private SubjectStatus status;
     private Boolean schoolValidated;
     private LocalDateTime lastSchoolValidation;
+    private Boolean isDeleted;
+    private LocalDateTime deletedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

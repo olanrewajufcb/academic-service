@@ -44,9 +44,7 @@ public class ClassManagementServiceImp implements ClassManagementService {
     @Override
     public Mono<SchoolClassResponse> createSchoolClass(CreateSchoolClassRequest request, String requestId) {
 
-
-        return transactionalOperator.execute(status ->
-                schoolClientService.validateSchoolExistsByCode(request.getSchoolCode()))
+        return schoolClientService.validateSchoolExistsByCode(request.getSchoolCode())
                 .flatMap(schoolExists -> {
                     if (Boolean.FALSE.equals(schoolExists)) {
                         return Mono.error(new SchoolNotFoundException("School not found: " + request.getSchoolCode()));
@@ -61,6 +59,7 @@ public class ClassManagementServiceImp implements ClassManagementService {
                     schoolClass.setCurrentStudents(0);
                     return schoolClassRepository.save(schoolClass);
                 }))
+                .as(transactionalOperator::transactional)
         .doOnSuccess(
             savedClass ->
                 log.info(
@@ -69,26 +68,23 @@ public class ClassManagementServiceImp implements ClassManagementService {
                     requestId))
         .map(schoolClassMapper::toResponse)
         .onErrorMap(
-            DuplicateKeyException.class,
-            e -> new DuplicateClassException("Class already exists " + requestId))
-        .onErrorMap(
-            DataIntegrityViolationException.class,
-            ex ->
-                new DataIntegrityViolationException(
-                    "DB constraint failed : " + ex.getMessage(), ex))
-        .onErrorResume(
-            ex -> {
-              log.error(
-                  "Failed to create school class | requestId {} | error {}",
-                  requestId,
-                  ex.getMessage());
-                if (ex instanceof SchoolNotFoundException || ex instanceof TeacherNotFoundException) {
-                    return Mono.error(ex);
-                }
-              return Mono.error(
-                  new SchoolClassCreationException(
-                      "Failed to create school class " + requestId, ex));
-            });
+                ex -> {
+                    if(ex instanceof DuplicateKeyException){
+                        log.error(
+                            "Class already exists | requestId: {}",
+                            requestId);
+                        return new DuplicateClassException("Class already exists " + requestId);
+                    }
+                    else if (ex instanceof DataIntegrityViolationException){
+                        log.error(
+                            "DB constraint failed | requestId::::",
+                            ex);
+                        return new SchoolClassFailureException("DB constraint failed ", ex);
+                    }
+                    return new SchoolClassCreationException(
+                                    "Failed to create school class " + requestId, ex);
+           });
+
     }
 
     private Mono<Void> validatedFormTeacher(Long teacherId) {
@@ -123,11 +119,9 @@ public class ClassManagementServiceImp implements ClassManagementService {
                     List<SchoolClass> schoolClassList = tuple.getT2();
                    long total =  tuple.getT3();
 
-                   if (total == 0) {
-                       return Mono.error(new SchoolClassNotFoundException("No classes found for " +
-                               schoolCode + " and the given academic year: " + academicYear));
-                   }
-                   var responses = schoolClassList.stream()
+                   List<SchoolClassResponse> responses = total == 0
+                           ? List.of()
+                           : schoolClassList.stream()
                            .map(schoolClassMapper::toResponse)
                            .toList();
 
@@ -145,11 +139,13 @@ public class ClassManagementServiceImp implements ClassManagementService {
                         log.info("[{}] Retrieved {} classes (page {}/{}) for schoolId: {}",
                                 requestId, page.getNumberOfElements(),
                                 page.getNumber() + 1, page.getTotalPages(), schoolCode))
-                .onErrorMap(TimeoutException.class,
-                        ex -> new SchoolClassFailureException("Request timeout after 5s", ex))
+
                 .onErrorMap(error -> {
                     log.error("[{}] Failed to fetch classes for classId: {}",
                             requestId, schoolCode, error);
+                    if (error instanceof TimeoutException){
+                        return new DatabaseTimeoutException("Database operation timed out:::", error);
+                    }
                     return new SchoolClassFailureException(
                             "Failed to fetch classes for schoolCode: " + schoolCode, error);
                 });
@@ -170,11 +166,9 @@ public class ClassManagementServiceImp implements ClassManagementService {
              List<StudentsInClassRow> studentsInClassRows =   tuple.getT1();
               long total =  tuple.getT2();
 
-              if (total == 0) {
-                  Page<StudentInClassResponse> emptyPage = Page.empty();
-                  return Mono.just(emptyPage);
-              }
-             var responses = studentsInClassRows.stream()
+             List<StudentInClassResponse> responses = total == 0
+                     ? List.of()
+                      : studentsInClassRows.stream()
                       .map(schoolClassMapper::responseFromRows)
                       .toList();
 
@@ -185,14 +179,15 @@ public class ClassManagementServiceImp implements ClassManagementService {
                         page.getNumber() + 1, page.getTotalPages(),
                         classId);
 
-                return  Mono.just(page);
+                return Mono.just(page);
             })
 
-            .onErrorMap(TimeoutException.class,
-                    ex -> new SchoolClassFailureException("Database timeout", ex))
             .onErrorMap(error -> {
                 log.error("[{}] Failed to fetch students for classId: {}",
                         requestId, classId, error);
+                if (error instanceof TimeoutException){
+                    return new DatabaseTimeoutException("Database operation timed out", error);
+                }
                 return  new SchoolClassFailureException("Failed to fetch students", error);
             });
     }
@@ -210,5 +205,8 @@ public class ClassManagementServiceImp implements ClassManagementService {
                 })
         .orElse("student_name");
         }
+
+
+
 }
 

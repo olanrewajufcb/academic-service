@@ -57,19 +57,18 @@ public class SubjectServiceImp implements SubjectService {
 
                         })
 
-            .onErrorMap(DataIntegrityViolationException.class, ex -> {
-                if (ex.getMessage() != null &&
-                        ex.getMessage().contains("uk_school_subject_code")) {
-                    return new SubjectAlreadyExistsException(
-                            String.format("Subject '%s' already exists for school '%s'",
-                                    request.getSubjectCode(), request.getSchoolCode()));
+            .onErrorMap(ex -> {
+
+                if (ex instanceof DataIntegrityViolationException){
+                    if (ex.getMessage() != null &&
+                            ex.getMessage().contains("uk_school_subject_code")) {
+                        return new AlreadyExistsException(
+                                String.format("Subject '%s' already exists for school '%s'",
+                                        request.getSubjectCode(), request.getSchoolCode()));
+                    }
                 }
-                return new DataIntegrityViolationException("Database error", ex);
-            })
-            .onErrorResume(ex -> {
-                log.error("[{}] Failed to register subject", requestId, ex);
-                return Mono.error(ex);
-                        });
+                return new AcademicServiceFailureException("Database error", ex.getMessage(),  ex);
+            });
     }
 
     public Mono<Page<SubjectResponse>> getSubjectBySchoolAndClassLevel(String schoolCode, String gradeLevel, Pageable pageable, String requestId) {
@@ -94,10 +93,13 @@ public class SubjectServiceImp implements SubjectService {
                         }))
                 .doOnError(error -> log.error("[{}] Error fetching subjects for school {}: {}",
                         requestId, schoolCode, error.getMessage()))
-                .onErrorMap(TimeoutException.class,
-                        ex -> new SchoolClassFailureException("Database timeout", ex))
-                // Only map to generic failure if it's not already a known domain exception
-                .onErrorMap(error -> !(error instanceof SchoolNotFoundException || error instanceof SchoolClassFailureException),
-                        error -> new SchoolClassFailureException("Failed to fetch subjects", error));
+
+                .onErrorMap(error -> {
+                    if (error instanceof TimeoutException){
+                        return new DatabaseTimeoutException("Database operation timed out", error);
+                    }
+                    return new AcademicServiceFailureException(
+                            "Failed to fetch subjects :::" + error.getMessage());
+                });
     }
 }

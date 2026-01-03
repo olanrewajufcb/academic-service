@@ -18,6 +18,8 @@ public class AcademicTerm {
     private LocalDate startDate;
     private LocalDate endDate;
     private Boolean isCurrent;
+    private Boolean isDeleted;
+    private LocalDateTime deletedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

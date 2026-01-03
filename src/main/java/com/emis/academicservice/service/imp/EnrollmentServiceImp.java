@@ -34,53 +34,71 @@ public class EnrollmentServiceImp implements EnrollmentService {
 
     @Override
     public Mono<EnrollmentResponse> enrollStudent(EnrollStudentRequest request, String idempotencyKey) {
-        return transactionalOperator.execute(status ->
-                         schoolClassRepository.findClassBySchoolCodeAndId(request.getSchoolCode(), request.getClassId())
-                        .switchIfEmpty(Mono.error(new SchoolClassNotFoundException(
-                                "Class not found: " + request.getClassId())))
-                        .flatMap(classProjection ->
-                                studentClientService.getStudentDetails(request.getStudentNumber(), request.getSchoolCode())
-                        .flatMap(student ->
-                                enrollmentRepository.existsByStudentIdAndClassId(student.studentId(), request.getClassId())
-                                        .flatMap(exists ->
-                                                Boolean.TRUE.equals(exists)
-                                                        ? Mono.error(new StudentAlreadyEnrolledException("Student " +
-                                                        student.studentId() + " already enrolled in class " + request.getClassId()))
-                                                        : Mono.just(Tuples.of(student, classProjection)))))
-                        .flatMap(tuple -> {
-                            StudentDetailsResponse student = tuple.getT1();
-                            SchoolClassProjection classProjection = tuple.getT2();
+    return schoolClassRepository
+        .findClassBySchoolCodeAndId(request.getSchoolCode(), request.getClassId())
+        .switchIfEmpty(
+            Mono.error(
+                new SchoolClassNotFoundException("Class not found: " + request.getClassId())))
+        .flatMap(
+            classProjection ->
+                studentClientService
+                    .getStudentDetails(request.getStudentNumber(), request.getSchoolCode())
+                    .flatMap(
+                        student ->
+                            enrollmentRepository
+                                .existsByStudentIdAndClassId(
+                                    student.studentId(), request.getClassId())
+                                .flatMap(
+                                    exists ->
+                                        Boolean.TRUE.equals(exists)
+                                            ? Mono.error(
+                                                new AlreadyExistsException(
+                                                    "Student "
+                                                        + student.studentId()
+                                                        + " already enrolled in class "
+                                                        + request.getClassId()))
+                                            : Mono.just(Tuples.of(student, classProjection)))))
+        .flatMap(
+            tuple -> {
+              StudentDetailsResponse student = tuple.getT1();
+              SchoolClassProjection classProjection = tuple.getT2();
 
-                            Enrollment enrollment = mapper.toEntity(request);
+              Enrollment enrollment = mapper.toEntity(request);
 
-                            enrollment.setStudentId(student.studentId());
-                            enrollment.setStudentNumber(student.studentNumber());
-                            enrollment.setStudentName(student.firstName());
-                            enrollment.setAcademicYear(classProjection.getAcademicYear());
-                            enrollment.setIdempotencyKey(idempotencyKey);
+              enrollment.setStudentId(student.studentId());
+              enrollment.setStudentNumber(student.studentNumber());
+              enrollment.setStudentName(student.firstName());
+              enrollment.setAcademicYear(classProjection.getAcademicYear());
+              enrollment.setIdempotencyKey(idempotencyKey);
 
-                            return enrollmentRepository.save(enrollment)
-                                    .then(schoolClassRepository.incrementStudentCount(request.getClassId()))
-                                    .thenReturn(enrollment);
-                        })
-        )
-                .next()
-                .doOnNext(saved ->
-                        log.info("Student enrolled: id={}, studentId={}, classId={}, idempotencyKey={}",
-                                saved.getEnrollmentId(), saved.getStudentId(), saved.getClassId(), idempotencyKey))
-                .map(mapper::toResponse)
-                .onErrorMap(DataIntegrityViolationException.class, ex -> {
-                    if (ex.getMessage().contains("chk_class_capacity")) {
-                        return new ClassCapacityExceededException("Class capacity exceeded", ex);
-                    } else if (ex.getMessage().contains("enrollment_student_class_key")) {
-                        return new StudentAlreadyEnrolledException("Duplicate enrollment");
-                    }
-                    return new EnrollmentFailureException("DB error", ex);
-                })
-                .onErrorResume(ex -> {
-                    log.error("Enrollment failed [{}]: {}", idempotencyKey, ex.toString());
-                    return Mono.error(ex);
-                });
-
+              // Perform the save and increment operations within a transaction
+              return enrollmentRepository
+                  .save(enrollment)
+                  .flatMap(
+                      savedEnrollment ->
+                          schoolClassRepository
+                              .incrementStudentCount(request.getClassId())
+                              .thenReturn(savedEnrollment))
+                  .as(transactionalOperator::transactional);
+            })
+        .doOnNext(
+            saved ->
+                log.info(
+                    "Student enrolled: id={}, studentId={}, classId={}, idempotencyKey={}",
+                    saved.getEnrollmentId(),
+                    saved.getStudentId(),
+                    saved.getClassId(),
+                    idempotencyKey))
+        .map(mapper::toResponse)
+        .onErrorMap(
+            DataIntegrityViolationException.class,
+            ex -> {
+              if (ex.getMessage().contains("chk_class_capacity")) {
+                return new ClassCapacityExceededException("Class capacity exceeded", ex);
+              } else if (ex.getMessage().contains("enrollment_student_class_key")) {
+                return new AlreadyExistsException("Duplicate enrollment");
+              }
+              return new EnrollmentFailureException("DB error::::", ex);
+            });
     }
 }

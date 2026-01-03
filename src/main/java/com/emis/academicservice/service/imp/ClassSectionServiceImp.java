@@ -39,13 +39,14 @@ public class ClassSectionServiceImp implements ClassSectionService {
             .doOnSuccess(savedClass -> log.info("Successfully created class section with id {} | requestId: {}",
                     savedClass.getSectionId(), requestId))
             .map(mapper::toResponse)
-            .onErrorMap(DuplicateKeyException.class, e ->
-                    new ClassSectionAlreadyExistsException("Class section already exists " + requestId))
-            .onErrorMap(DataIntegrityViolationException.class, ex ->
-                            new DataIntegrityViolationException("Data integrity violation: " + ex.getMessage(), ex))
-           .onErrorResume(ex -> {
+            .onErrorMap(ex -> {
+                if (ex instanceof DuplicateKeyException) {
+                    return new AlreadyExistsException("Class section already exists");
+                } else if (ex instanceof DataIntegrityViolationException) {
+                    return new ClassSectionCreationException("Failed to create class section", ex);
+                }
                         log.error("Failed to create class section | requestId {} | error {}", requestId, ex.getMessage());
-                        return Mono.error(new ClassSectionCreationException("Failed to create class section " + requestId, ex));
+                        return new ClassSectionCreationException("Failed to create class section " + requestId, ex);
                     });
     }
 
@@ -61,7 +62,7 @@ public class ClassSectionServiceImp implements ClassSectionService {
                 .map(Sort.Order::getProperty)
                 .orElse("sectionId");
 
-        return Mono.zip(
+    return Mono.zip(
             repository.findPageByClassId(classId, sortBy, pageSize, offset).collectList(),
             repository.countByClassId(classId))
         .timeout(Duration.ofSeconds(5))
@@ -70,27 +71,30 @@ public class ClassSectionServiceImp implements ClassSectionService {
               List<ClassSection> sections = tuple.getT1();
               long total = tuple.getT2();
 
-              if (total == 0) {
-                return Mono.error(
-                    new ClassSectionNotFoundException(
-                        "No class sections found  for id " + classId));
-              }
               List<ClassSectionResponse> responses =
-                  sections.stream().map(mapper::toResponse).toList();
+                  total == 0 ? List.of() : sections.stream().map(mapper::toResponse).toList();
               Page<ClassSectionResponse> responsePage = new PageImpl<>(responses, pageable, total);
               return Mono.just(responsePage);
             })
-            .doOnSuccess(page ->
-                    log.info("[{}] Retrieved {} class sections (page {}/{}) for classId: {}",
-                            requestId, page.getNumberOfElements(),
-                            page.getNumber() + 1, page.getTotalPages(), classId))
-            .onErrorMap(TimeoutException.class,
-                    ex -> new ClassSectionFailureException("Request timeout after 5s", ex))
-            .onErrorMap(error -> {
-                log.error("[{}] Failed to fetch class sections for classId: {}",
-                        requestId, classId, error);
-                return new ClassSectionFailureException(
-                        "Failed to fetch class sections for classId: " + classId, error);
+        .doOnSuccess(
+            page ->
+                log.info(
+                    "[{}] Retrieved {} class sections (page {}/{}) for classId: {}",
+                    requestId,
+                    page.getNumberOfElements(),
+                    page.getNumber() + 1,
+                    page.getTotalPages(),
+                    classId))
+        .onErrorMap(
+            error -> {
+              log.error(
+                  "[{}] Failed to fetch class sections for classId: {}", requestId, classId, error);
+              if (error instanceof TimeoutException) {
+                return new DatabaseTimeoutException(
+                    "Timeout while fetching class sections for classId:::: ", error);
+              }
+              return new ClassSectionFailureException(
+                  "Failed to fetch class sections for classId: " + classId, error);
             });
     }
 }

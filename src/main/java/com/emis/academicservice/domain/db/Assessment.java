@@ -26,8 +26,11 @@ public class Assessment {
     private BigDecimal weight;
     private LocalDate dueDate;
     private AssessmentStatus status;
+    private Boolean isDeleted;
+    private LocalDateTime deletedAt;
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
 }

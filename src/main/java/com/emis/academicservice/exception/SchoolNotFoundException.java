@@ -4,7 +4,18 @@ import lombok.Getter;
 
 @Getter
 public class SchoolNotFoundException extends RuntimeException {
-    public SchoolNotFoundException(String schoolId) {
-        super("School not found with id: " + schoolId);
+    private final String fieldName;
+    private final Object searchValue;
+
+    public SchoolNotFoundException(String message) {
+        super(message);
+        this.fieldName = null;
+        this.searchValue = null;
+    }
+
+    public SchoolNotFoundException(String message, String fieldName, Object searchValue) {
+        super(message);
+        this.fieldName = fieldName;
+        this.searchValue = searchValue;
     }
 }

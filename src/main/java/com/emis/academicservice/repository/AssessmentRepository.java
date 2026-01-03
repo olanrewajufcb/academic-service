@@ -10,23 +10,6 @@ import reactor.core.publisher.Mono;
 
 public interface AssessmentRepository extends R2dbcRepository<Assessment, Long> {
 
-    @Query("""
-        SELECT a.* FROM assessments a
-        WHERE a.section_id = $1
-        AND a.assessment_type = $2
-        ORDER BY a.due_date DESC
-        LIMIT $3 OFFSET $4
-    """)
-    Flux<Assessment> findBySectionIdAndFilters(
-            Long sectionId,
-            String assessmentType,
-            int size,
-            long offset);
-
-
-    @Query("SELECT COUNT(*) FROM assessments WHERE section_id = $1 AND assessment_type = $2 ")
-    Mono<Long> countAssessmentInSection(Long sectionId, AssessmentType assessmentType);
-
 
     @Query("""
         SELECT a.*, at.name FROM assessments a
@@ -56,7 +39,7 @@ public interface AssessmentRepository extends R2dbcRepository<Assessment, Long> 
         WHERE a.section_id = :sectionId
         AND sc.school_id = :schoolId
         AND (:assessmentType IS NULL OR a.assessment_type = :assessmentType)
-        AND (:term IS NULL OR at.term_code = :term)
+        AND (:term IS NULL OR at.term_code = :term AND a.is_deleted = FALSE)
     """)
     Mono<Long> countBySectionIdAndSchoolId(
             @Param("sectionId") Long sectionId,

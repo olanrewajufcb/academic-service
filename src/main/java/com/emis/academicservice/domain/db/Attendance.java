@@ -19,6 +19,8 @@ public class Attendance {
     private LocalDate attendanceDate;
     private AttendanceStatus status;
     private String notes;
+    private Boolean isDeleted;
+    private LocalDateTime deletedAt;
     private LocalDateTime recordedAt;
     private Long recordedBy;
     private LocalDateTime createdAt;

@@ -42,12 +42,11 @@ public class AssessmentServiceImp implements AssessmentService {
     @Override
     public Mono<AssessmentResponse> createAssessment(CreateAssessmentRequest request, String requestId) {
 
-        return transactionalOperator.execute(status ->
-                Mono.defer(() -> {
+        return Mono.defer(() -> {
                     Assessment assessment = mapper.toEntity(request);
                     return assessmentRepository.save(assessment);
-                }))
-                .next()
+                })
+                .as(transactionalOperator::transactional)
                 .doOnNext(assessment -> log.info("[{}] Assessment created: id={}, sectionId={}, termId={}",
                                 requestId, assessment.getAssessmentId(), assessment.getSectionId(), assessment.getTermId()))
                 .map(mapper::toResponse)
@@ -56,13 +55,9 @@ public class AssessmentServiceImp implements AssessmentService {
                         return new DuplicateAssessmentException(
                                 "Assessment '" + request.getName() + "' already exists", ex);
                     } else if (ex.getMessage().contains("assessments_max_score_check")) {
-                        return new InvalidAssessmentException("maxScore must be > 0",ex);
+                        return new InvalidAssessmentException("maxScore must be > 0", ex);
                     }
                     return new AssessmentCreationException("Failed to create assessment", ex);
-                })
-                .onErrorResume(ex -> {
-                    log.error("[{}] Assessment creation failed", requestId, ex);
-                    return Mono.error(ex);
                 });
     }
 
@@ -74,7 +69,8 @@ public class AssessmentServiceImp implements AssessmentService {
 
     return schoolCacheService
         .getSchoolIdByCode(schoolCode)
-            .switchIfEmpty(Mono.error(new SchoolNotFoundException("School not found for schoolCode" + schoolCode)))
+        .switchIfEmpty(
+            Mono.error(new SchoolNotFoundException("School not found for schoolCode" + schoolCode)))
         .flatMap(
             schoolId ->
                 classSectionRepository
@@ -120,12 +116,14 @@ public class AssessmentServiceImp implements AssessmentService {
                     page.getTotalElements(),
                     sectionId))
         .onErrorMap(
-            TimeoutException.class,
-            ex -> new TimeoutException("Database timeout while fetching assessments"))
-        .onErrorMap(
-            DataAccessException.class,
             ex -> {
-              log.error("[{}] Database error fetching assessments: {}", requestId, ex.getMessage());
+              if (ex instanceof TimeoutException) {
+                log.error("[{}] Timeout error fetching assessments", requestId);
+                return new TimeoutException("Timeout error occurred");
+              } else if (ex instanceof DataAccessException err) {
+                log.error("[{}] Error fetching assessments::::", requestId, err);
+                return new AssessmentServiceException("Error occurred", err);
+              }
               return new AssessmentServiceException("Database error occurred", ex);
             });
     }

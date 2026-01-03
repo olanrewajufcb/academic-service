@@ -6,6 +6,7 @@ import com.emis.academicservice.dto.response.StudentClassesResponses;
 import com.emis.academicservice.dto.response.StudentMarksResponse;
 import com.emis.academicservice.dto.response.SubjectName;
 import com.emis.academicservice.exception.ClassSectionFailureException;
+import com.emis.academicservice.exception.DatabaseTimeoutException;
 import com.emis.academicservice.exception.StudentNotFoundException;
 import com.emis.academicservice.repository.*;
 import com.emis.academicservice.service.StudentClassesService;
@@ -90,12 +91,10 @@ public class StudentClassesServiceImp implements StudentClassesService {
               long total = tuple.getT2();
               Map<Long, String> subjectNames = tuple.getT3();
 
-              if (total == 0) {
-                  Page<StudentMarksResponse> emptyPage = Page.empty();
-                return Mono.just(emptyPage);
-              }
-              List<StudentMarksResponse> enrichMarks =
-                  marks.stream()
+
+              List<StudentMarksResponse> enrichMarks = total == 0
+                  ? List.of()
+                  : marks.stream()
                       .map(
                           mark ->
                               new StudentMarksResponse(
@@ -112,9 +111,8 @@ public class StudentClassesServiceImp implements StudentClassesService {
                                   subjectNames.getOrDefault(mark.subjectId(), "Unknown Subject"),
                                   null))
                       .toList();
-              Page<StudentMarksResponse> pageResponse = new PageImpl<>(enrichMarks, pageable, total);
+             return Mono.just((Page<StudentMarksResponse>) new PageImpl<>(enrichMarks, pageable, total));
 
-              return Mono.just(pageResponse);
             })
         .doOnSuccess(
             page ->
@@ -126,16 +124,17 @@ public class StudentClassesServiceImp implements StudentClassesService {
                     page.getTotalPages(),
                     studentNumber))
         .onErrorMap(
-            TimeoutException.class, ex -> new TimeoutException("Request timeout after 5s"))
-        .onErrorResume(
             ex -> {
               log.error(
                   "[{}] Failed to fetch student marks for studentNumber: {}",
                   requestId,
                   studentNumber,
                   ex);
-              return Mono.error(new ClassSectionFailureException(
-                  "Failed to fetch student marks for studentNumber: " + studentNumber, ex));
+              if (ex instanceof TimeoutException){
+                  return new DatabaseTimeoutException("Database operation timed out:::", ex);
+              }
+              return new ClassSectionFailureException(
+                  "Failed to fetch student marks for studentNumber: " + studentNumber, ex);
             });
         }
 

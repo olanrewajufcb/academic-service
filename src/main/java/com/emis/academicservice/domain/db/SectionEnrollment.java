@@ -7,6 +7,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 
 @Data
@@ -18,4 +19,6 @@ public class SectionEnrollment {
     private Long sectionId;
     private Long studentId;
     private LocalDate enrollmentDate;
+    private Boolean isDeleted;
+    private LocalDateTime deletedAt;
 }

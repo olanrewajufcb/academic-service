@@ -23,7 +23,7 @@ public interface SubjectRepository extends R2dbcRepository<Subject, Long> {
  """)
     Flux<Subject> findBySchoolIdAndGradeLevel(Long schoolId, String gradeLevel, int size, long offset);
 
-    @Query("SELECT COUNT(*) FROM subjects WHERE school_id = :schoolId AND grade_level = :gradeLevel")
+    @Query("SELECT COUNT(*) FROM subjects WHERE school_id = :schoolId AND grade_level = :gradeLevel AND is_deleted = FALSE")
     Mono<Long> countBySchoolIdAndClassLevel(
             @Param("schoolId") Long schoolId,
             @Param("gradeLevel") String gradeLevel

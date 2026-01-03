@@ -22,6 +22,8 @@ public class Enrollment {
     private Long admittedBy;
     private LocalDateTime admittedAt;
     private String rejectionReason;
+    private Boolean isDeleted;
+    private LocalDateTime deletedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String idempotencyKey;

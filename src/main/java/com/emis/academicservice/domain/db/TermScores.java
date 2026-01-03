@@ -14,10 +14,12 @@ public class TermScores {
     private Long termScoreId;
     private Long studentId;
     private Long sectionId;
-    private String academicTerm;
+    private String termId;
     private BigDecimal totalScore;
     private BigDecimal averageScore;
     private Integer positionInClass;
     private String remarks;
+    private Boolean isDeleted;
+    private LocalDateTime deletedAt;
     private LocalDateTime calculatedAt;
 }

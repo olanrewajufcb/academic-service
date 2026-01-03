@@ -10,18 +10,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface MarkBookEntryRepository extends R2dbcRepository<MarkBookEntry, Long> {
-    @Query("SELECT EXISTS(SELECT 1 FROM markbook_entry WHERE assessment_id = :assessmentId AND student_id = :studentId)")
-    Mono<Boolean> existsByAssessmentIdAndStudentId(Long assessmentId, Long studentId);
 
-    @Query("SELECT * FROM markbook_entry WHERE assessment_id = :assessmentId ORDER BY student_id")
-    Flux<MarkBookEntry> findByAssessmentId(Long assessmentId);
-
-    @Query("""
-        SELECT COUNT(*) FROM markbook_entry me
-        JOIN assessment a ON me.assessment_id = a.assessment_id
-        WHERE a.section_id = :sectionId AND a.assessment_type = :assessmentType
-    """)
-    Mono<Long> countBySectionAndType(Long sectionId, AssessmentType assessmentType);
 
   @Query("""
  SELECT 

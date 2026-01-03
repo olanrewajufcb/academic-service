@@ -3,30 +3,32 @@ package com.emis.academicservice.enums;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum SchoolLevel {
+public enum SchoolStage {
+
     PRE_NURSERY("Pre-Nursery"),
     NURSERY("Nursery"),
     PRIMARY("Primary"),
     JUNIOR_SECONDARY("Junior Secondary"),
     SENIOR_SECONDARY("Senior Secondary");
 
-    SchoolLevel(String value) {
+    SchoolStage(String value) {
         this.value = value;
     }
+
     private final String value;
 
     @JsonCreator
-    public static SchoolLevel fromValue(String value) {
-        for (SchoolLevel level : SchoolLevel.values()) {
-            if (level.value.equalsIgnoreCase(value)) {
-                return level;
+    public static SchoolStage fromValue(String value) {
+        for (SchoolStage stage : SchoolStage.values()) {
+            if (stage.value.equalsIgnoreCase(value)) {
+                return stage;
             }
         }
         return null;
     }
 
     @JsonValue
-    public String toValue() {
+    public String toValue(){
         return this.name();
     }
 }

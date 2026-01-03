@@ -29,13 +29,13 @@ FROM academic_term AS at
 JOIN term_scores AS ts ON at.term_id = ts.term_id
 JOIN class_sections AS cs ON cs.section_id = ts.section_id                      
 WHERE ts.student_id = $1 
-    AND 
-    cs.school_id = $2
 AND 
-    at.academic_year = $3
-   ORDER BY  at.start_date DESC, cs.subject_id
-        LIMIT $4 OFFSET $5
-        """)
+cs.school_id = $2
+AND 
+at.name = $3
+ORDER BY  at.start_date DESC, cs.subject_id
+LIMIT $4 OFFSET $5
+""")
   Flux<StudentMarksResponse> getStudentMarks(
       Long studentId, Long schoolId, String academicYear, int size, long offset);
 
@@ -45,8 +45,8 @@ AND
     term_scores ts
     JOIN academic_term at ON at.term_id = ts.term_id
     JOIN class_sections cs ON cs.section_id = ts.section_id
-    WHERE sc.academic_year = $1
-    AND ts.student_id = $2
+    WHERE at.name = $1
+    AND ts.student_id = $2 AND ts.is_deleted = FALSE
 """)
     Mono<Long> countStudentMarks(String academicYear, Long studentId);
 
@@ -56,7 +56,7 @@ AND
         FROM term_scores ts
         JOIN class_sections cs ON cs.section_id = ts.section_id
         JOIN academic_term at ON at.term_id = ts.term_id
-        WHERE ts.student_id = $1 AND at.academic_year = $2
+        WHERE ts.student_id = $1 AND at.name = $2 AND ts.is_deleted = FALSE
     """)
   Flux<Long> getStudentSubjectIds(Long studentId, String academicYear);
 

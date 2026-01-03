@@ -83,10 +83,6 @@ public class MarkBookServiceImp implements MarkBookService {
                                                 }
                                                 return new MarkBookFailureException("DB error", ex);
                                             })
-                                            .onErrorResume(ex -> {
-                                                log.error("[{}] MarkBook entry failed for studentId = {}", requestId, ex);
-                                                return Mono.error(ex);
-                                            })
                                             .map(entry -> markBookMapper.toMarkBookResponse(entry, assessment, student)); // deferred mapping
                                 })));
     }
