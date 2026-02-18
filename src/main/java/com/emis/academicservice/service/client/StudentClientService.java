@@ -1,6 +1,7 @@
 package com.emis.academicservice.service.client;
 
 import com.emis.academicservice.dto.response.StudentDetailsResponse;
+import com.emis.academicservice.dto.response.StudentEnrollmentResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -14,5 +15,8 @@ public interface StudentClientService {
     Flux<StudentDetailsResponse> getStudentDetailsBatch(List<Long> studentIds);
 
     Mono<StudentDetailsResponse> getStudentByIdAndSchoolId(Long studentId, String schoolCode);
+
+    Mono<StudentEnrollmentResponse> getActiveEnrollment(String studentNumber,
+                            String schoolCode,  String academicYear);
 
 }

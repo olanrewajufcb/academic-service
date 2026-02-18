@@ -20,6 +20,7 @@ public class Subject {
     @Id
     private Long subjectId;
     private Long schoolId;
+    private String schoolCode;
     private String subjectCode;
     private String name;
     private String description;

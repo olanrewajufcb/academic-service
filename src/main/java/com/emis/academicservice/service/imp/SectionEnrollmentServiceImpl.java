@@ -1,5 +1,6 @@
 package com.emis.academicservice.service.imp;
 
+import com.emis.academicservice.config.ServiceConfigurationProperties;
 import com.emis.academicservice.domain.db.SectionEnrollment;
 import com.emis.academicservice.dto.request.EnrollStudentInClassSectionRequest;
 import com.emis.academicservice.dto.response.SectionEnrollmentResponse;
@@ -7,6 +8,7 @@ import com.emis.academicservice.exception.*;
 import com.emis.academicservice.mapper.SectionEnrollmentMapper;
 import com.emis.academicservice.repository.ClassSectionRepository;
 import com.emis.academicservice.repository.SectionEnrollmentRepository;
+import com.emis.academicservice.service.ActiveStudentEnrollmentCache;
 import com.emis.academicservice.service.SectionEnrollmentService;
 import com.emis.academicservice.service.client.StudentClientService;
 import io.netty.handler.timeout.TimeoutException;
@@ -23,13 +25,14 @@ import java.time.LocalDate;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class SectionEnrollmentServiceImp implements SectionEnrollmentService {
+public class SectionEnrollmentServiceImpl implements SectionEnrollmentService {
 
     private final ClassSectionRepository classSectionRepository;
     private final SectionEnrollmentRepository sectionEnrollmentRepository;
     private final TransactionalOperator transactionalOperator;
-    private final StudentClientService studentClientService;
+    private final ActiveStudentEnrollmentCache studentEnrollmentCache;
     private final SectionEnrollmentMapper mapper;
+    private final ServiceConfigurationProperties properties;
 
     @Override
     public Mono<SectionEnrollmentResponse> enrollStudentInClassSection(Long sectionId,
@@ -47,9 +50,12 @@ public class SectionEnrollmentServiceImp implements SectionEnrollmentService {
                         + "'")))
         .flatMap(
             validation ->
-                studentClientService
-                    .getStudentDetails(request.getStudentNumber(), request.getSchoolCode())
-                    .timeout(Duration.ofSeconds(3))
+                studentEnrollmentCache
+                        .getStudentEnrollmentFromCache(
+                                request.getSchoolCode(),
+                                request.getStudentNumber(),
+                                request.getAcademicYear())
+                    .timeout(Duration.ofSeconds(properties.getTimeout()))
                     .flatMap(
                         student -> {
                           if (!request.getSchoolCode().equals(student.schoolCode())) {
@@ -65,6 +71,7 @@ public class SectionEnrollmentServiceImp implements SectionEnrollmentService {
                           SectionEnrollment enrollment = mapper.toEntity(request);
                           enrollment.setSectionId(sectionId);
                           enrollment.setStudentId(student.studentId());
+                          enrollment.setStudentNumber(student.studentNumber());
                           enrollment.setEnrollmentDate(LocalDate.now());
                           return sectionEnrollmentRepository.save(enrollment);
                         }))

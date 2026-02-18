@@ -25,6 +25,20 @@ spring:
     validate-on-migrate: true
     out-of-order: false
 
+  cloud:
+    stream:
+      bindings:
+        hrEvents-in-0:
+          destination: hr.events.v1
+          group: academic-service
+          content-type: application/json
+        attendance-out-0:
+          destination: attendance.events.v1
+
+      kafka:
+        binder:
+          brokers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
 
 
 #  security:
@@ -71,7 +85,14 @@ logging:
 
 emis:
   services:
-    configuration:
+    school-configuration:
       base-url: ${EMIS_SERVICE_URL:http://localhost:8082}
-      get-school-details-url: ${emis.services.configuration.base-url}/api/v1/schools/{schoolCode}
-      validate-school-exists-url: ${emis.services.configuration.base-url}/schools/validate/{schoolCode}
+      get-school-details-url: ${emis.services.school-configuration.base-url}/api/v1/schools/{schoolCode}
+      validate-school-exists-url: ${emis.services.configuration.base-url}/api/v1/schools/validate/{schoolCode}
+
+    student-configuration:
+      base-url: ${EMIS_SERVICE_URL:http://localhost:8083}
+      get-student-details-url: ${emis.services.student-configuration.base-url}/api/v1/students
+      get-active-enrollment-url: ${emis.services.student-configuration.base-url}/api/v1/students/{studentNumber}/enrollments/current
+
+    timeout: 5

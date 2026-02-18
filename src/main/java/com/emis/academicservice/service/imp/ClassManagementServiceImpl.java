@@ -1,6 +1,7 @@
 package com.emis.academicservice.service.imp;
 
 import com.emis.academicservice.cache.SchoolCacheService;
+import com.emis.academicservice.config.ServiceConfigurationProperties;
 import com.emis.academicservice.domain.db.SchoolClass;
 import com.emis.academicservice.dto.request.CreateSchoolClassRequest;
 import com.emis.academicservice.dto.response.SchoolClassResponse;
@@ -31,7 +32,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ClassManagementServiceImp implements ClassManagementService {
+public class ClassManagementServiceImpl implements ClassManagementService {
 
     private final SchoolClassRepository schoolClassRepository;
     private  final SchoolClassMapper schoolClassMapper;
@@ -39,27 +40,30 @@ public class ClassManagementServiceImp implements ClassManagementService {
     private final SchoolClientService schoolClientService;
     private final HrClientService hrClientService;
     private final SchoolCacheService schoolCacheService;
+    private final ServiceConfigurationProperties properties;
 
 
     @Override
     public Mono<SchoolClassResponse> createSchoolClass(CreateSchoolClassRequest request, String requestId) {
 
-        return schoolClientService.validateSchoolExistsByCode(request.getSchoolCode())
-                .flatMap(schoolExists -> {
-                    if (Boolean.FALSE.equals(schoolExists)) {
-                        return Mono.error(new SchoolNotFoundException("School not found: " + request.getSchoolCode()));
-                    }
-                    return Mono.just(true);
-                })
-                .then(request.getFormTeacherId() != null
-                        ? validatedFormTeacher(request.getFormTeacherId())
-                        : Mono.empty())
-                .then(Mono.defer(() -> {
-                    SchoolClass schoolClass = schoolClassMapper.toEntity(request);
-                    schoolClass.setCurrentStudents(0);
-                    return schoolClassRepository.save(schoolClass);
+    return schoolClientService
+        .validateSchoolExistsByCode(request.getSchoolCode())
+        .flatMap(
+            schoolExists -> {
+              if (Boolean.FALSE.equals(schoolExists)) {
+                return Mono.error(
+                    new SchoolNotFoundException("School not found: " + request.getSchoolCode()));
+              }
+              return Mono.just(true);
+            })
+        .then(
+            Mono.defer(
+                () -> {
+                  SchoolClass schoolClass = schoolClassMapper.toEntity(request);
+                  schoolClass.setCurrentStudents(0);
+                  return schoolClassRepository.save(schoolClass);
                 }))
-                .as(transactionalOperator::transactional)
+        .as(transactionalOperator::transactional)
         .doOnSuccess(
             savedClass ->
                 log.info(
@@ -68,23 +72,25 @@ public class ClassManagementServiceImp implements ClassManagementService {
                     requestId))
         .map(schoolClassMapper::toResponse)
         .onErrorMap(
-                ex -> {
-                    if(ex instanceof DuplicateKeyException){
-                        log.error(
-                            "Class already exists | requestId: {}",
-                            requestId);
-                        return new DuplicateClassException("Class already exists " + requestId);
-                    }
-                    else if (ex instanceof DataIntegrityViolationException){
-                        log.error(
-                            "DB constraint failed | requestId::::",
-                            ex);
-                        return new SchoolClassFailureException("DB constraint failed ", ex);
-                    }
-                    return new SchoolClassCreationException(
-                                    "Failed to create school class " + requestId, ex);
-           });
-
+            ex -> {
+              if (ex instanceof DuplicateKeyException) {
+                log.error("Class already exists | requestId: {}", requestId);
+                return new DuplicateClassException("Class already exists " + requestId);
+              } else if (ex instanceof DataIntegrityViolationException) {
+                log.error("DB constraint failed | requestId::::", ex);
+                return new SchoolClassFailureException("DB constraint failed ", ex);
+              } else if (ex instanceof SchoolNotFoundException) {
+                log.error("School not found error occurred | requestId: {}", requestId);
+                return new SchoolNotFoundException(ex.getMessage());
+              }
+              else if (ex instanceof SchoolServiceException) {
+                log.error("School not found error occurred | requestId: {}", requestId);
+                return new SchoolServiceException(
+                    ex.getMessage() + request.getSchoolCode(), ex);
+              }
+              return new SchoolClassCreationException(
+                  "Failed to create school class " + requestId, ex);
+            });
     }
 
     private Mono<Void> validatedFormTeacher(Long teacherId) {
@@ -99,25 +105,20 @@ public class ClassManagementServiceImp implements ClassManagementService {
     }
 
     @Override
-    public Mono<Page<SchoolClassResponse>> getSchoolClassBySchoolId(String schoolCode, String academicYear,
+    public Mono<Page<SchoolClassResponse>> getSchoolClassBySchoolCode(String schoolCode, String academicYear,
                                                                    Pageable pageable, String requestId) {
 
         int pageSize = pageable.getPageSize();
         long offset = pageable.getOffset();
 
-        return schoolCacheService.getSchoolIdByCode(schoolCode)
-                .switchIfEmpty(Mono.error(new SchoolClassNotFoundException("School not found with code " + schoolCode)))
-                .flatMap(schoolId -> Mono.zip(
-                        Mono.just(schoolId),
-                        schoolClassRepository.findBySchoolIdAndAcademicYear(schoolId,
+        return Mono.zip(
+                        schoolClassRepository.findBySchoolCodeAndAcademicYear(schoolCode,
                         academicYear, pageSize,  offset).collectList(),
-                        schoolClassRepository.countBySchoolIdAndAcademicYear(schoolId,academicYear))
-                )
-                .timeout(Duration.ofSeconds(5))
+                        schoolClassRepository.countBySchoolCodeAndAcademicYear(schoolCode,academicYear))
+                .timeout(Duration.ofSeconds(properties.getTimeout()))
                 .flatMap(tuple -> {
-                    long schoolId = tuple.getT1();
-                    List<SchoolClass> schoolClassList = tuple.getT2();
-                   long total =  tuple.getT3();
+                    List<SchoolClass> schoolClassList = tuple.getT1();
+                   long total =  tuple.getT2();
 
                    List<SchoolClassResponse> responses = total == 0
                            ? List.of()
@@ -127,10 +128,10 @@ public class ClassManagementServiceImp implements ClassManagementService {
 
                    Page<SchoolClassResponse> page = new PageImpl<>(responses, pageable, total);
 
-                    log.info("[{}] Retrieved {} classes (page {}/{}) for schoolId: {} | schoolCode: {}",
+                    log.info("[{}] Retrieved {} classes (page {}/{}) for | schoolCode: {}",
                             requestId, page.getNumberOfElements(),
                             page.getNumber() + 1, page.getTotalPages(),
-                            schoolId, schoolCode);
+                             schoolCode);
 
                    return Mono.just(page);
 

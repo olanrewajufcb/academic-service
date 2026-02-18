@@ -13,7 +13,7 @@ public interface EnrollmentMapper {
     @Mapping(target = "enrollmentId", ignore = true)
     @Mapping(target = "studentId", ignore = true)
     @Mapping(target = "studentName", ignore = true)
-    @Mapping(target = "academicYear", ignore = true)
+//    @Mapping(target = "academicYear", ignore = true)
     @Mapping(target = "enrollmentDate", ignore = true)
     @Mapping(target = "enrollmentStatus", ignore = true)
     @Mapping(target = "admittedBy", ignore = true)
@@ -23,9 +23,5 @@ public interface EnrollmentMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "idempotencyKey", ignore = true)
     Enrollment toEntity(EnrollStudentRequest request);
-
-    @Mapping(target = "className", ignore = true)
-    @Mapping(target = "status", ignore = true)
-    EnrollmentResponse toResponse(Enrollment enrollment);
 
 }

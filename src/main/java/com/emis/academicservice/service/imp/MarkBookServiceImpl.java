@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 @Service
-public class MarkBookServiceImp implements MarkBookService {
+public class MarkBookServiceImpl implements MarkBookService {
 
     private final SchoolCacheService schoolCacheService;
     private final AssessmentRepository assessmentRepository;
@@ -53,7 +53,6 @@ public class MarkBookServiceImp implements MarkBookService {
         }
 
         return schoolCacheService.getSchoolIdByCode(request.schoolCode())
-                .switchIfEmpty(Mono.error(new SchoolNotFoundException("School not found for " + request.schoolCode())))
                 .flatMap(schoolId -> assessmentRepository
                         .findByAssessmentIdAndSchoolId(request.assessmentId(), schoolId)
                         .switchIfEmpty(Mono.error(new AssessmentNotFoundException(
@@ -90,7 +89,6 @@ public class MarkBookServiceImp implements MarkBookService {
     @Override
     public Mono<MarkBookViewResponse> getSectionMarkBook(Long sectionId, String schoolCode, Long assessmentId, String academicYear, String requestId) {
         return schoolCacheService.getSchoolIdByCode(schoolCode)
-                .switchIfEmpty(Mono.error(new SchoolNotFoundException("School not found: " + schoolCode)))
                 .flatMap(schoolId -> validateAssessmentBelongsToSchool(assessmentId, schoolId))
                 .flatMap(assessment ->
                         markBookEntryRepository.findBySectionAndAssessmentAndAcademicYear(sectionId, assessmentId, academicYear)

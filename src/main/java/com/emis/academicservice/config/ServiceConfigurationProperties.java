@@ -16,7 +16,7 @@ import org.springframework.data.r2dbc.config.EnableR2dbcAuditing;
 public class ServiceConfigurationProperties {
 
     @NestedConfigurationProperty
-    private SchoolServiceProperties configuration;
+    private SchoolServiceProperties schoolConfiguration;
 
     @NestedConfigurationProperty
     private HrServiceProperties hrConfiguration;
@@ -48,7 +48,10 @@ public class ServiceConfigurationProperties {
     public static class StudentServiceProperties{
         private String baseUrl;
         private String getStudentDetailsUrl;
+        private String getActiveEnrollmentUrl;
         private String batchStudentDetailsUrl;
     }
+
+    private int timeout;
 
 }

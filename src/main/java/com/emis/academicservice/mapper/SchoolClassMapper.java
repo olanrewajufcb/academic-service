@@ -3,7 +3,6 @@ package com.emis.academicservice.mapper;
 import com.emis.academicservice.domain.db.SchoolClass;
 import com.emis.academicservice.dto.request.CreateSchoolClassRequest;
 import com.emis.academicservice.dto.response.SchoolClassResponse;
-import com.emis.academicservice.dto.response.StudentDetailsResponse;
 import com.emis.academicservice.dto.response.StudentInClassResponse;
 import com.emis.academicservice.enums.SchoolLevel;
 import com.emis.academicservice.enums.SchoolType;
@@ -17,7 +16,6 @@ import org.mapstruct.Named;
 public interface SchoolClassMapper {
 
     @Mapping(target = "classId", ignore = true)
-    @Mapping(target = "schoolId", ignore = true)
     @Mapping(target = "formTeacherName", ignore = true)
 
     @Mapping(target = "currentStudents", ignore = true)

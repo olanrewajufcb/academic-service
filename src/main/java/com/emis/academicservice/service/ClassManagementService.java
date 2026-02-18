@@ -11,7 +11,8 @@ import reactor.core.publisher.Mono;
 public interface ClassManagementService {
     Mono<SchoolClassResponse> createSchoolClass(CreateSchoolClassRequest request, String requestId);
 
-    Mono<Page<SchoolClassResponse>> getSchoolClassBySchoolId(String schoolCode, String academicYear, Pageable pageable, String requestId);
+    Mono<Page<SchoolClassResponse>> getSchoolClassBySchoolCode(String schoolCode, String academicYear,
+                                                               Pageable pageable, String requestId);
 
     Mono<Page<StudentInClassResponse>> getStudentInClassByClassId(Long classId,Pageable pageable, String requestId);
 }

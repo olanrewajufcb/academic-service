@@ -4,8 +4,6 @@ import com.emis.academicservice.cache.SchoolCacheService;
 import com.emis.academicservice.domain.db.Assessment;
 import com.emis.academicservice.dto.request.CreateAssessmentRequest;
 import com.emis.academicservice.dto.response.AssessmentResponse;
-import com.emis.academicservice.dto.response.ClassSectionResponse;
-import com.emis.academicservice.dto.response.SectionAssessmentsResponse;
 import com.emis.academicservice.enums.AssessmentType;
 import com.emis.academicservice.exception.*;
 import com.emis.academicservice.mapper.AssessmentMapper;
@@ -31,7 +29,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AssessmentServiceImp implements AssessmentService {
+public class AssessmentServiceImpl implements AssessmentService {
 
     private final AssessmentRepository assessmentRepository;
     private final AssessmentMapper mapper;
@@ -40,12 +38,19 @@ public class AssessmentServiceImp implements AssessmentService {
     private final ClassSectionRepository classSectionRepository;
 
     @Override
-    public Mono<AssessmentResponse> createAssessment(CreateAssessmentRequest request, String requestId) {
+    public Mono<AssessmentResponse> createAssessment(CreateAssessmentRequest request,
+                                                    String schoolCode, String requestId) {
 
-        return Mono.defer(() -> {
+        return classSectionRepository.findBySectionIdAndSchoolCode(request.getSectionId(), schoolCode)
+                .switchIfEmpty(Mono.error(new ClassSectionNotFoundException(
+                        "Class section not found")))
+                .flatMap(classSection -> {
                     Assessment assessment = mapper.toEntity(request);
+                    assessment.setSchoolId(classSection.getSchoolId());
+                    assessment.setTermId(classSection.getTermId());
+                    assessment.setSchoolCode(classSection.getSchoolCode());
                     return assessmentRepository.save(assessment);
-                })
+               })
                 .as(transactionalOperator::transactional)
                 .doOnNext(assessment -> log.info("[{}] Assessment created: id={}, sectionId={}, termId={}",
                                 requestId, assessment.getAssessmentId(), assessment.getSectionId(), assessment.getTermId()))
@@ -63,14 +68,12 @@ public class AssessmentServiceImp implements AssessmentService {
 
     @Override
     public Mono<Page<AssessmentResponse>> getAllAssessmentsForClassSection(Long sectionId, String schoolCode,
-                                                                                   AssessmentType assessmentType, String term, Pageable pageable, String requestId) {
+                              AssessmentType assessmentType, String term, Pageable pageable, String requestId) {
         int size = pageable.getPageSize();
         long offset = pageable.getOffset();
 
     return schoolCacheService
         .getSchoolIdByCode(schoolCode)
-        .switchIfEmpty(
-            Mono.error(new SchoolNotFoundException("School not found for schoolCode" + schoolCode)))
         .flatMap(
             schoolId ->
                 classSectionRepository

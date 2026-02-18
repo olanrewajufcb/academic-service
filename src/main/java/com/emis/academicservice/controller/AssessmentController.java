@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-@RequestMapping("api/v1/academic/schools")
+@RequestMapping("api/v1/academic")
 public class AssessmentController {
 
     private static final Set<String> ALLOWED_SORT_FIELDS =
@@ -41,18 +41,20 @@ public class AssessmentController {
 
     private final AssessmentService service;
 
-    @PostMapping("/assessments")
+    @PostMapping("/schools/{schoolCode}/assessments")
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<AssessmentResponse> createAssessment(@Valid @RequestBody CreateAssessmentRequest request) {
+    public Mono<AssessmentResponse> createAssessment(
+            @Valid @RequestBody CreateAssessmentRequest request,
+            @PathVariable String schoolCode) {
 
         String requestId = UUID.randomUUID().toString();
 
-        return service.createAssessment(request, requestId)
+        return service.createAssessment(request, schoolCode, requestId)
                 .doOnSubscribe(sub -> log.info("Creating school class with id {}", requestId))
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
-    @GetMapping("{schoolCode}/sections/{sectionId}/assessments")
+    @GetMapping("/schools/{schoolCode}/sections/{sectionId}/assessments")
     @ResponseStatus(HttpStatus.OK)
     public Mono<Page<AssessmentResponse>> getSectionAssessment( @PathVariable Long sectionId,
                                                                 @PathVariable String schoolCode,

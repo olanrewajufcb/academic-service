@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 
 public interface AssessmentService {
 
-    Mono<AssessmentResponse> createAssessment(CreateAssessmentRequest request, String requestId);
+    Mono<AssessmentResponse> createAssessment(CreateAssessmentRequest request,String schoolCode, String requestId);
 
     Mono<Page<AssessmentResponse>> getAllAssessmentsForClassSection(Long sectionId, String schoolCode,
                                          AssessmentType assessmentType, String term, Pageable pageable, String requestId);

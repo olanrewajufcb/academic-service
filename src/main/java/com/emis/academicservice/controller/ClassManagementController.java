@@ -6,6 +6,7 @@ import com.emis.academicservice.dto.response.SchoolClassResponse;
 import com.emis.academicservice.dto.response.StudentInClassResponse;
 import com.emis.academicservice.exception.BadRequestException;
 import com.emis.academicservice.service.ClassManagementService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -39,10 +40,15 @@ public class ClassManagementController {
             .collect(Collectors.toSet());
     private static final String REQUEST_ID = "requestId";
 
+    @Operation(summary = "Create a school class")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<SchoolClassResponse> createSchoolClass(@Valid @RequestBody CreateSchoolClassRequest request) {
         String requestId = UUID.randomUUID().toString();
+
+        if (!request.getAcademicYear().matches("\\d{4}/\\d{4}")) {
+            throw new BadRequestException("Invalid academicYear format. Expected: '2024/2025'");
+        }
 
         return service.createSchoolClass(request, requestId)
                 .doOnSubscribe(sub -> log.info("Creating school class with id {}", requestId))
@@ -50,8 +56,9 @@ public class ClassManagementController {
 
     }
 
+    @Operation(summary = "Get school classes by school id")
     @GetMapping()
-    public Mono<Page<SchoolClassResponse>> getSchoolClassesBySchoolId(
+    public Mono<Page<SchoolClassResponse>> getSchoolClasses(
         @RequestParam String schoolCode,
         @RequestParam String academicYear,
         @RequestParam(defaultValue = "0")
@@ -74,7 +81,7 @@ public class ClassManagementController {
 
         String requestId = UUID.randomUUID().toString();
 
-        return service.getSchoolClassBySchoolId(schoolCode, academicYear,pageRequest, requestId)
+        return service.getSchoolClassBySchoolCode(schoolCode, academicYear, pageRequest, requestId)
                 .doOnSubscribe(sub -> log.info("Retrieving school class with id {}", requestId))
                 .contextWrite(ctx -> ctx.put(REQUEST_ID, requestId));
 

@@ -3,6 +3,7 @@ package com.emis.academicservice.domain.db;
 import com.emis.academicservice.enums.AssessmentStatus;
 import com.emis.academicservice.enums.AssessmentType;
 import lombok.Data;
+import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -19,6 +20,8 @@ public class Assessment {
     private Long assessmentId;
     private Long sectionId;
     private Long termId;
+    private Long schoolId;
+    private String schoolCode;
     private String name;
     private AssessmentType assessmentType;
     private String description;
@@ -26,11 +29,14 @@ public class Assessment {
     private BigDecimal weight;
     private LocalDate dueDate;
     private AssessmentStatus status;
+    private Long teacherId;
     private Boolean isDeleted;
     private LocalDateTime deletedAt;
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate
     private LocalDateTime updatedAt;
+    @CreatedBy
+    private String createdBy;
 
 }

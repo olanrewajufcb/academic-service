@@ -31,7 +31,7 @@ public enum GradeLevel {
     @JsonCreator
     public static GradeLevel fromString(String gradeLevel) {
         for (GradeLevel level : GradeLevel.values()) {
-            if (level.name().equalsIgnoreCase(gradeLevel)) {
+            if (level.value.equalsIgnoreCase(gradeLevel)) {
                 return level;
             }
         }

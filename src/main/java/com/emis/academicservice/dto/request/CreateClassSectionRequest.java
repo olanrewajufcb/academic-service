@@ -6,10 +6,9 @@ import lombok.Data;
 @Data
 @Builder
 public class CreateClassSectionRequest {
-    private String schoolCode;
+    private Long termId;
     private Long classId;
     private Long subjectId;
-    private Long teacherId;
     private String room;
     private String schedule;
     private Integer maxCapacity;

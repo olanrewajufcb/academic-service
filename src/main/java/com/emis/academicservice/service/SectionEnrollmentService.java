@@ -1,6 +1,5 @@
 package com.emis.academicservice.service;
 
-import com.emis.academicservice.dto.request.CreateClassSectionRequest;
 import com.emis.academicservice.dto.request.EnrollStudentInClassSectionRequest;
 import com.emis.academicservice.dto.response.SectionEnrollmentResponse;
 

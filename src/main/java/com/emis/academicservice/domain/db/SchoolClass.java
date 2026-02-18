@@ -25,7 +25,7 @@ public class SchoolClass {
     private String className;
     private GradeLevel gradeLevel;
     private String arm;
-    private SchoolStage stage;
+    private String stage;
     private String academicYear;
     private Integer maxStudents;
     private Integer currentStudents;

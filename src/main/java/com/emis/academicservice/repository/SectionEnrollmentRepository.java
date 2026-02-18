@@ -11,4 +11,8 @@ public interface SectionEnrollmentRepository extends R2dbcRepository<SectionEnro
     @Query("SELECT EXISTS(SELECT 1 FROM section_enrollments WHERE student_id = $1 AND section_id = $2)")
     Mono<Boolean> existsByStudentIdAndSectionId(Long studentId, Long sectionId);
 
+
+    @Query("SELECT EXISTS(SELECT 1 FROM section_enrollments WHERE student_number = $1 AND section_id = $2)")
+    Mono<Boolean> existsByStudentNumberAndSectionId(String studentNumber, Long sectionId);
+
 }

@@ -13,8 +13,8 @@ import java.util.List;
 public interface SubjectRepository extends R2dbcRepository<Subject, Long> {
     @Query("SELECT * FROM subjects WHERE school_id = :schoolId AND status = 'ACTIVE'")
     Flux<Subject> findBySchoolId(Long schoolId);
-    
-    @Query("SELECT * FROM subjects WHERE school_id = :schoolId AND subject_code = :subjectCode")
+
+    @Query("SELECT * FROM subjects WHERE school_id = :schoolId AND subject_code = :subjectCode AND deleted_at IS NULL")
     Mono<Subject> findBySchoolIdAndCode(Long schoolId, String subjectCode);
 
     @Query("""
@@ -23,13 +23,29 @@ public interface SubjectRepository extends R2dbcRepository<Subject, Long> {
  """)
     Flux<Subject> findBySchoolIdAndGradeLevel(Long schoolId, String gradeLevel, int size, long offset);
 
-    @Query("SELECT COUNT(*) FROM subjects WHERE school_id = :schoolId AND grade_level = :gradeLevel AND is_deleted = FALSE")
-    Mono<Long> countBySchoolIdAndClassLevel(
-            @Param("schoolId") Long schoolId,
+    @Query("SELECT COUNT(*) FROM subjects WHERE school_code = :schoolCode AND grade_level = :gradeLevel AND is_deleted = FALSE")
+    Mono<Long> countBySchoolCodeAndGradeLevel(
+            @Param("schoolCode") String schoolCode,
             @Param("gradeLevel") String gradeLevel
     );
 
     @Query("SELECT subject_id, name FROM subjects WHERE subject_id IN (:ids)")
     Flux<SubjectName> findNamesByIds(List<Long> ids);
+
+    @Query("""
+         SELECT * FROM subjects WHERE school_code = :schoolCode AND grade_level = :gradeLevel AND is_deleted = FALSE
+         ORDER BY subject_id LIMIT :size OFFSET :offset
+ """)
+    Flux<Subject> findBySchoolCodeAndGradeLevel(String schoolCode, String gradeLevel, int size, long offset);
+
+    @Query("""
+         SELECT * FROM subjects WHERE school_code = :schoolCode AND is_deleted = FALSE
+         ORDER BY subject_id LIMIT :size OFFSET :offset
+ """)
+    Flux<Subject> findBySchoolCode(String schoolCode, int size, long offset);
+
+
+    @Query("SELECT COUNT(*) FROM subjects WHERE school_code = :schoolCode AND is_deleted = FALSE")
+    Mono<Long> countBySchoolCode(@Param("schoolCode") String schoolCode);
 }
 

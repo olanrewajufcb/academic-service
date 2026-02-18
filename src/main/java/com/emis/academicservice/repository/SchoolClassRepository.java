@@ -13,15 +13,16 @@ public interface SchoolClassRepository extends R2dbcRepository<SchoolClass, Long
       """
             SELECT class_id, school_id, class_name, grade_level, arm, academic_year,
             form_teacher_id, max_students, current_students, created_at, updated_at
-            FROM school_classes WHERE school_id = :schoolId AND academic_year = :academicYear
+            FROM school_classes WHERE school_code = :schoolCode AND academic_year = :academicYear
+                                AND is_deleted = FALSE
             ORDER BY class_id LIMIT :size OFFSET :offset
             
             """)
-  Flux<SchoolClass> findBySchoolIdAndAcademicYear(
-      Long schoolId, String academicYear, int size, long offset);
+  Flux<SchoolClass> findBySchoolCodeAndAcademicYear(
+      String schoolCode, String academicYear, int size, long offset);
 
-    @Query("SELECT COUNT(*) FROM school_classes WHERE school_id = $1 AND academic_year = $2 AND is_deleted = FALSE")
-    Mono<Long> countBySchoolIdAndAcademicYear(Long schoolId, String academicYear);
+    @Query("SELECT COUNT(*) FROM school_classes WHERE school_code = $1 AND academic_year = $2 AND is_deleted = FALSE")
+    Mono<Long> countBySchoolCodeAndAcademicYear(String schoolCode, String academicYear);
 
   @Query("""
         SELECT 
@@ -48,6 +49,7 @@ public interface SchoolClassRepository extends R2dbcRepository<SchoolClass, Long
     school_classes sc
     JOIN class_sections cs ON sc.class_id = cs.class_id
     JOIN section_enrollments se ON cs.section_id = se.class_id
+    JOIN sujects s ON cs.subject_id = s.suject_id
     WHERE sc.academic_year = $1
     AND se.student_id = $2 AND sc.is_deleted = FALSE
 """)

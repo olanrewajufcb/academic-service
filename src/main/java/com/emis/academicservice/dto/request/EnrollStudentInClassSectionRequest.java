@@ -7,4 +7,5 @@ public class EnrollStudentInClassSectionRequest {
 
     private String studentNumber;
     private String schoolCode;
+    private String academicYear;
 }

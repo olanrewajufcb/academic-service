@@ -16,7 +16,7 @@ public class Enrollment {
     private Long studentId;
     private String studentNumber;
     private String studentName;
-    private String academicYear;
+//    private String academicYear; to later add to the schema
     private LocalDateTime enrollmentDate;
     private EnrollmentStatus enrollmentStatus;
     private Long admittedBy;

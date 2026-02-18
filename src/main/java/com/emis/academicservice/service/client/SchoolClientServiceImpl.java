@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.emis.academicservice.config.ServiceConfigurationProperties;
 import com.emis.academicservice.dto.response.SchoolDetailsResponse;
 import com.emis.academicservice.exception.SchoolNotFoundException;
+import com.emis.academicservice.exception.SchoolServiceException;
 import com.emis.academicservice.exception.SchoolServiceUnavailableException;
 import com.emis.academicservice.utils.ClientHelper;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class SchoolClientServiceImpl implements SchoolClientService {
 
     @Override
     public Mono<SchoolDetailsResponse> getSchoolDetails(String schoolCode) {
-        var url = properties.getConfiguration().getGetSchoolDetailsUrl();
+        var url = properties.getSchoolConfiguration().getGetSchoolDetailsUrl();
         var pathVariable = new ConcurrentHashMap<String, String>();
         pathVariable.put("schoolCode", schoolCode);
     return client
@@ -36,65 +37,53 @@ public class SchoolClientServiceImpl implements SchoolClientService {
               return response;
             })
         .onErrorMap(
-            WebClientResponseException.NotFound.class,
             err -> {
-              log.error(
-                  "Exception occurred while trying to get school details for schoolId: {}",
-                  schoolCode,
-                  err);
-              return new SchoolNotFoundException("School not found: " + schoolCode);
-            })
-        .onErrorMap(
-            WebClientResponseException.class,
-            err -> {
-              log.error(
-                  "Exception occurred while trying to get school details for schoolId: {}",
-                  schoolCode,
-                  err);
-              return new SchoolServiceUnavailableException(
-                  "School service error: " + err.getStatusCode(), err.getResponseBodyAsString());
-            })
-        .onErrorMap(
-            Exception.class,
-            err -> {
-              log.error(
-                  "Unexpected exception occurred while trying to get school details for schoolId: {}",
-                  schoolCode,
-                  err);
-              return new SchoolServiceUnavailableException(
-                  "Unexpected error occurred while fetching school details" + err.getMessage(),
-                  err);
+                log.error(
+                        "Exception occurred while trying to get school details for schoolId: {}",
+                        schoolCode,
+                        err);
+                if (err instanceof WebClientResponseException.NotFound ex) {
+                    return new SchoolNotFoundException(
+                            "School not found: " + schoolCode + ex.getMessage());
+                } else if (err instanceof WebClientResponseException.ServiceUnavailable ex) {
+                    log.error("School service unavailable: {}", schoolCode, ex);
+                    return new SchoolServiceUnavailableException(
+                            "School service error: " + ex.getStatusCode(), ex.getResponseBodyAsString());
+                }
+
+                return new SchoolServiceException("School service error: ", err);
             });
+
     }
 
     @Override
     public Mono<Boolean> validateSchoolExists(Long schoolId) {
-        var url = properties.getConfiguration().getValidateSchoolExistsUrl();
+        var url = properties.getSchoolConfiguration().getValidateSchoolExistsUrl();
         var pathVariable = new ConcurrentHashMap<String, Long>();
         pathVariable.put("schoolId", schoolId);
-        return client
-                .getRequestWithPathVariables(
-                        url, pathVariable, ClientHelper.getHeaders(), Boolean.class)
-                .map(
-                        response -> {
-                            log.info("School Details Response: {}", response);
-                            return response;
-                        })
-         .onErrorResume(
-             SchoolServiceUnavailableException.class,
-             err -> {
-               log.warn("Service is currently not available.");
-               return Mono.error(new SchoolServiceUnavailableException("School service is unavailable", err));
-             })
-             .onErrorMap(err -> {
-               log.error("Error validating school existence for schoolId: {}", schoolId, err);
-               return new SchoolNotFoundException("School not found: " + schoolId + err.getMessage());
-             });
+    return client
+        .getRequestWithPathVariables(url, pathVariable, ClientHelper.getHeaders(), Boolean.class)
+        .map(
+            response -> {
+              log.info("School Details Response: {}", response);
+              return response;
+            })
+        .onErrorMap(
+            err -> {
+              log.error("Error validating school existence for schoolId: {}", schoolId, err);
+              if (err instanceof WebClientResponseException.NotFound ex) {
+                return new SchoolNotFoundException(
+                    "School not found: " + schoolId + ex.getMessage());
+              } else if (err instanceof WebClientResponseException.ServiceUnavailable ex) {
+                return new SchoolServiceUnavailableException("School not found: " + schoolId, ex);
+              }
+              return new SchoolServiceException("School service error: ", err);
+            });
     }
 
     @Override
     public Mono<Boolean> validateSchoolExistsByCode(String schoolCode) {
-        var url = properties.getConfiguration().getValidateSchoolExistsUrl();
+        var url = properties.getSchoolConfiguration().getValidateSchoolExistsUrl();
         var pathVariable = new ConcurrentHashMap<String, String>();
         pathVariable.put("schoolCode", schoolCode);
         return client
@@ -105,15 +94,18 @@ public class SchoolClientServiceImpl implements SchoolClientService {
                             log.info("School Details Response: {}", response);
                             return response;
                         })
-                .onErrorResume(
-                        SchoolServiceUnavailableException.class,
-                        err -> {
-                            log.warn("Service is currently not available.");
-                            return Mono.error(new SchoolServiceUnavailableException("School service is unavailable", err));
-                        })
+
                 .onErrorMap(err -> {
-                    log.error("Error validating school existence for schoolId: {}", schoolCode, err);
-                    return new SchoolNotFoundException("School not found: " + schoolCode + err.getMessage());
+                    log.error("Error validating school existence for schoolCode: {}", schoolCode, err);
+                    if (err instanceof WebClientResponseException.NotFound ex) {
+                        log.error("School not found with code : {}", schoolCode, ex);
+                        return new SchoolNotFoundException(
+                                "School not found with the given school code: " + schoolCode);
+                    } else if (err instanceof WebClientResponseException.ServiceUnavailable ex) {
+                        return new SchoolServiceUnavailableException("School not found: " + schoolCode, ex);
+                    }
+                    log.error("School service error:::: {}", schoolCode, err);
+                    return new SchoolServiceException("School service error ", err);
                 });
     }
 }

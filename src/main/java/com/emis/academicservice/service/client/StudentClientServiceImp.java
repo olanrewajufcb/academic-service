@@ -2,11 +2,14 @@ package com.emis.academicservice.service.client;
 
 import com.emis.academicservice.config.ServiceConfigurationProperties;
 import com.emis.academicservice.dto.response.StudentDetailsResponse;
+import com.emis.academicservice.dto.response.StudentEnrollmentResponse;
 import com.emis.academicservice.exception.SchoolServiceUnavailableException;
 import com.emis.academicservice.exception.StudentNotFoundException;
+import com.emis.academicservice.exception.StudentServiceException;
 import com.emis.academicservice.utils.ClientHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
@@ -169,4 +172,47 @@ public class StudentClientServiceImp implements StudentClientService {
                                     err);
                         });    }
 
-}
+    @Override
+    public Mono<StudentEnrollmentResponse> getActiveEnrollment(String studentNumber,
+                                                               String schoolCode,
+                                                               String academicYear) {
+
+            var url = properties.getStudentConfiguration().getGetActiveEnrollmentUrl();
+            var pathVariable = new ConcurrentHashMap<String, String>();
+            var queryParams = new ConcurrentHashMap<String, String>();
+            pathVariable.put("studentNumber", studentNumber);
+            queryParams.put("schoolCode", schoolCode);
+            queryParams.put("academicYear", academicYear);
+
+            return client
+                    .getRequestWithParameters(
+                            url,
+                            pathVariable,
+                            queryParams,
+                            ClientHelper.getHeaders(),
+                            StudentEnrollmentResponse.class)
+                    .map(
+                            response -> {
+                                log.info("student enrollment Response: {}", response);
+                                return response;
+                            })
+                    .onErrorMap(
+                            err -> {
+                                log.error(
+                                        "Exception occurred while trying to get active student enrollment: {}",
+                                        schoolCode,
+                                        err);
+                                if (err instanceof WebClientResponseException.NotFound ex) {
+                                    return new ResourceNotFoundException(
+                                            "active student enrollment not found: " + studentNumber + ex.getMessage());
+                                } else if (err instanceof WebClientResponseException.ServiceUnavailable ex) {
+                                    log.error("Student service unavailable: {}", schoolCode, ex);
+                                    return new SchoolServiceUnavailableException(
+                                            "Student service error: " + ex.getStatusCode(), ex.getResponseBodyAsString());
+                                }
+
+                                return new StudentServiceException("Student service error: ", err);
+                            });
+        }
+    }
+

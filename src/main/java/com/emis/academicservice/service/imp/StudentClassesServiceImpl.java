@@ -1,13 +1,9 @@
 package com.emis.academicservice.service.imp;
 
-import com.emis.academicservice.cache.SchoolCacheService;
-import com.emis.academicservice.domain.db.Subject;
-import com.emis.academicservice.dto.response.StudentClassesResponses;
 import com.emis.academicservice.dto.response.StudentMarksResponse;
 import com.emis.academicservice.dto.response.SubjectName;
 import com.emis.academicservice.exception.ClassSectionFailureException;
 import com.emis.academicservice.exception.DatabaseTimeoutException;
-import com.emis.academicservice.exception.StudentNotFoundException;
 import com.emis.academicservice.repository.*;
 import com.emis.academicservice.service.StudentClassesService;
 import com.emis.academicservice.service.client.StudentClientService;
@@ -28,7 +24,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class StudentClassesServiceImp implements StudentClassesService {
+public class StudentClassesServiceImpl implements StudentClassesService {
 
     private final StudentClientService studentClientService;
     private final SchoolClassRepository repository;

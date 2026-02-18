@@ -11,7 +11,11 @@ public interface EnrollmentRepository extends R2dbcRepository<Enrollment, Long> 
 
     @Query(""" 
             SELECT EXISTS(SELECT 1 FROM enrollments WHERE student_id = $1
-            AND class_id = $2
+            AND class_id = $2)
 """)
     Mono<Boolean> existsByStudentIdAndClassId(Long studentId, Long classId);
+
+    Mono<Boolean> existsByStudentNumberAndClassId(String studentNumber, Long classId);
+
+    Mono<Enrollment> findByStudentNumberAndClassId(String studentNumber, Long classId);
 }

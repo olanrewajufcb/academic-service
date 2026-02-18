@@ -18,6 +18,7 @@ public class SectionEnrollment {
     private Long sectionEnrollmentId;
     private Long sectionId;
     private Long studentId;
+    private String studentNumber;
     private LocalDate enrollmentDate;
     private Boolean isDeleted;
     private LocalDateTime deletedAt;

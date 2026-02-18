@@ -6,6 +6,7 @@ import com.emis.academicservice.dto.request.RegisterSubjectRequest;
 import com.emis.academicservice.dto.response.SubjectResponse;
 import com.emis.academicservice.exception.BadRequestException;
 import com.emis.academicservice.service.SubjectService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -38,10 +39,12 @@ public class SubjectController {
                     .map(Field::getName)
                     .collect(Collectors.toSet());
 
+    @Operation(summary = "Register a subject")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<SubjectResponse> registerSubject(@Valid @RequestBody RegisterSubjectRequest request) {
         String requestId = UUID.randomUUID().toString();
+        log.info("stage in subject ::::::: {}", request.getStage());
 
         return service.registerSubject(request, requestId)
                 .doOnSubscribe(sub -> log.info("Registering subject with id {}", requestId))
@@ -49,6 +52,7 @@ public class SubjectController {
 
     }
 
+    @Operation(summary = "Get all subjects by school and grade level")
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public Mono<Page<SubjectResponse>> getSubjectBySchoolAndGradeLevel(@RequestParam String schoolCode,
@@ -74,5 +78,30 @@ public class SubjectController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
 
     }
+    @Operation(summary = "Get all subjects offer by school")
+    @GetMapping("/all")
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<Page<SubjectResponse>> getAllSchoolSubjects(@RequestParam String schoolCode,
+                                                                       @RequestParam(defaultValue = "0")
+                                                                       @Min(value = 0, message = "page must not be less than 0")
+                                                                       int page,
+                                                                       @RequestParam(defaultValue = "10")
+                                                                       @Min(value = 1, message = "size must be at least 1")
+                                                                       int size,
+                                                                       @RequestParam(defaultValue = "subjectId")
+                                                                       String sortBy) {
 
+        if(!ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            throw new BadRequestException("Invalid sort field: " + sortBy);
+        }
+
+        var pageRequest = PageRequest.of(page, size, Sort.by(sortBy));
+
+        String requestId = UUID.randomUUID().toString();
+
+        return service.getAllSubjectsBySchoolCode(schoolCode, pageRequest, requestId)
+                .doOnSubscribe(sub -> log.info("Retrieving subjects with id {}", requestId))
+                .contextWrite(ctx -> ctx.put("requestId", requestId));
+
+    }
 }

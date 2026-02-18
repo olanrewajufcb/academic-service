@@ -37,10 +37,10 @@ public class MarkBookController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
-    @GetMapping("/sections/{sectionId}/markbook")
+    @GetMapping("/schools/{schoolCode}/sections/{sectionId}/markbook")
     public Mono<MarkBookViewResponse> getSectionMarkBook(
             @PathVariable Long sectionId,
-            @RequestParam String schoolCode,
+            @PathVariable String schoolCode,
             @RequestParam Long assessmentId,
             @RequestParam(required = false) String academicYear
     ){

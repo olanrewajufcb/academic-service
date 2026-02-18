@@ -1,5 +1,7 @@
 package com.emis.academicservice.dto.request;
 
+import com.emis.academicservice.enums.GradeLevel;
+import com.emis.academicservice.enums.SchoolStage;
 import com.emis.academicservice.enums.SubjectStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,11 +23,11 @@ public class RegisterSubjectRequest {
     private String name;
     private String description;
     @NotNull
-    @NotBlank(message = "grade level is required")
-    private String gradeLevel;
+    @NotNull(message = "grade level is required")
+    private GradeLevel gradeLevel;
     private SubjectStatus status;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private SchoolStage stage;
+
 }
 
 

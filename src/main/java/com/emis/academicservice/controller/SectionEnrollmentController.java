@@ -5,6 +5,7 @@ import com.emis.academicservice.dto.request.EnrollStudentInClassSectionRequest;
 import com.emis.academicservice.dto.response.ClassSectionResponse;
 import com.emis.academicservice.dto.response.SectionEnrollmentResponse;
 import com.emis.academicservice.service.SectionEnrollmentService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +24,10 @@ public class SectionEnrollmentController {
 
     private final SectionEnrollmentService service;
 
+    @Operation(summary = "Assign subject section to student",
+    description = "Assign subject section to a student")
     @PostMapping("/{sectionId}")
-    public Mono<SectionEnrollmentResponse> enrollStudentInClassSection(@PathVariable Long sectionId,
+    public Mono<SectionEnrollmentResponse> assignSubjectSection(@PathVariable Long sectionId,
                                         @Valid @RequestBody EnrollStudentInClassSectionRequest request) {
         String requestId = UUID.randomUUID().toString();
 

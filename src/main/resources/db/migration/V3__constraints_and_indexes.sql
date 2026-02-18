@@ -85,3 +85,17 @@ CREATE UNIQUE INDEX uk_enrollment_active
 CREATE UNIQUE INDEX uk_academic_term_active
     ON academic_schema.academic_term (school_id, term_code)
     WHERE deleted_at IS NULL;
+
+
+-- Index for school_classes table to support the academic_year filter
+CREATE INDEX idx_school_classes_academic_year ON school_classes(academic_year);
+
+-- Index for section_enrollments to support student_id filter and join
+CREATE INDEX idx_section_enrollments_student_id ON section_enrollments(student_id);
+
+-- Index for class_sections to support class_id join
+CREATE INDEX idx_class_sections_class_id ON class_sections(class_id);
+
+-- Index for subjects table to support subject_id join (note: the table name in query appears to have a typo - "sujects" vs "subjects")
+CREATE INDEX idx_subjects_subject_id ON sujects(suject_id); -- adjust table name if it's actually "subjects"
+

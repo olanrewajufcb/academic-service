@@ -2,25 +2,21 @@ package com.emis.academicservice.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import lombok.Getter;
 
+@Getter
 public enum SchoolStage {
 
-    PRE_NURSERY("Pre-Nursery"),
-    NURSERY("Nursery"),
-    PRIMARY("Primary"),
-    JUNIOR_SECONDARY("Junior Secondary"),
-    SENIOR_SECONDARY("Senior Secondary");
-
-    SchoolStage(String value) {
-        this.value = value;
-    }
-
-    private final String value;
+    PRE_NURSERY,
+    NURSERY,
+    PRIMARY,
+    JUNIOR_SECONDARY,
+    SENIOR_SECONDARY;
 
     @JsonCreator
     public static SchoolStage fromValue(String value) {
         for (SchoolStage stage : SchoolStage.values()) {
-            if (stage.value.equalsIgnoreCase(value)) {
+            if (stage.name().equalsIgnoreCase(value)) {
                 return stage;
             }
         }

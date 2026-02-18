@@ -77,6 +77,30 @@ public interface ClassSectionRepository extends R2dbcRepository<ClassSection, Lo
             @Param("sectionId") Long sectionId,
             @Param("schoolId") Long schoolId);
 
+    @Query("""
+        SELECT cs.* FROM class_sections cs
+        WHERE cs.class_id = $1 
+        AND cs.staff_code = $2
+    """)
+    Flux<ClassSection> findAllByClassIdAndStaffCode(Long classId, String staffCode);
+
+    @Query("""
+        SELECT cs.* FROM class_sections cs
+        WHERE cs.class_id = $1 
+        AND cs.section_id = $2 
+        AND cs.teacher_code = $3
+    """)
+    Mono<ClassSection> findByClassIdAndSectionIdAndTeacherCode(Long classId, Long sectionId, String staffCode);
+
+    @Query("""
+    UPDATE academic_schema.class_sections
+    SET teacher_id = NULL,
+        teacher_code = NULL,
+        teacher_name = ''
+    WHERE school_code = :schoolCode
+      AND teacher_id = :staffId
+""")
+    Mono<Integer> unassignStaffFromSchool(String schoolCode, Long staffId);
 
 }
 

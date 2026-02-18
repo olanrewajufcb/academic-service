@@ -1,5 +1,6 @@
 package com.emis.academicservice.domain.db;
 
+import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
@@ -8,7 +9,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
-@Table(name = "academic_terms")
+@Table(name = "academic_term")
+@Builder
 public class AcademicTerm {
     @Id
     private Long termId;

@@ -20,6 +20,7 @@ public class ClassSection {
     private Long termId;
     private String schoolCode;
     private Long teacherId;
+    private String teacherCode;
     private String teacherName;
     private Boolean teacherValidated;
     private String room;
