@@ -21,8 +21,10 @@ public class OutboxEventProcessor {
 
   @Scheduled(fixedDelay = 3000)
   public void process() {
+    log.debug("Checking for pending outbox events...");
     outboxRepository
         .findPending(50)
+        .doOnNext(event -> log.info("Found pending event: {} for topic: {}", event.getEventId(), event.getTopic()))
         .concatMap(this::publishSafely)
         .onErrorContinue((ex, obj) -> log.error("Error processing outbox event", ex))
         .subscribe();

@@ -88,6 +88,7 @@ public class ClassManagementController {
 
     }
 
+    @Operation(summary = "Get all students enrolled in a school class")
     @GetMapping("{classId}/students")
     @ResponseStatus(HttpStatus.OK)
     public Mono<Page<StudentInClassResponse>> getStudentInClassByClassId(@PathVariable Long classId,

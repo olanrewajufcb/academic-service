@@ -11,11 +11,23 @@ public interface EnrollmentRepository extends R2dbcRepository<Enrollment, Long> 
 
     @Query(""" 
             SELECT EXISTS(SELECT 1 FROM enrollments WHERE student_id = $1
-            AND class_id = $2)
+            AND class_id = $2 AND is_deleted = FALSE)
 """)
     Mono<Boolean> existsByStudentIdAndClassId(Long studentId, Long classId);
 
     Mono<Boolean> existsByStudentNumberAndClassId(String studentNumber, Long classId);
 
+    @Query(""" 
+            SELECT * FROM enrollments WHERE student_number = $1
+            AND class_id = $2 AND is_deleted = FALSE
+""")
     Mono<Enrollment> findByStudentNumberAndClassId(String studentNumber, Long classId);
+
+    // For soft deleting
+    @Query("""
+    UPDATE enrollments
+    SET is_deleted = TRUE, deleted_at = NOW()
+    WHERE student_number = $1 AND class_id = $2 AND is_deleted = FALSE
+""")
+    Mono<Integer> softDeleteByStudentNumberAndClassId(String studentNumber, Long classId);
 }

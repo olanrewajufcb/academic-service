@@ -17,6 +17,7 @@ public class AcademicTerm {
     private Long schoolId;
     private String termCode;
     private String name;
+    private String academicYear;
     private LocalDate startDate;
     private LocalDate endDate;
     private Boolean isCurrent;

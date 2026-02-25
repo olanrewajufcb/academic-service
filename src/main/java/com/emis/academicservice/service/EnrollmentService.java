@@ -10,4 +10,7 @@ public interface EnrollmentService {
 
     Mono<EnrollmentResponse> getStudentPlacement(Long classId,
                      String studentNumber, String schoolCode, String requestId);
+
+    Mono<EnrollmentResponse> removeStudentFromClass(Long classId,
+                     String studentNumber, String schoolCode);
 }

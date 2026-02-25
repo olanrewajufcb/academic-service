@@ -373,3 +373,16 @@ Different transaction managers
 XA/2PC is not reactive-safe
 
 Leads to partial commits
+
+
+
+Now here is the deeper architectural question:
+
+Should promotion be:
+
+A) Manual (admin triggers it)
+B) Automatic at end of academic year
+C) Scheduled batch job
+D) Event-driven after term closure
+
+This decision affects your long-term system evolution.

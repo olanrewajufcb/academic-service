@@ -17,7 +17,7 @@ public class CreateSchoolClassRequest {
     @NotBlank(message = "School name cannot be blank")
     private String schoolName;
     private String className;
-    @NotNull(message = "Grade level cannot be null")
+    @NotNull(message = "Grade level cannot be empty and must be correct : NURSERY,PRIMARY_ONE... etc ")
     private GradeLevel gradeLevel;
     private String arm;
     private String stage;

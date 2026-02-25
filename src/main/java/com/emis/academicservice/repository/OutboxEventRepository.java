@@ -10,7 +10,7 @@ public interface OutboxEventRepository
         extends ReactiveCrudRepository<OutboxEvent, Long> {
 
     @Query("""
-        SELECT * FROM hr_schema.outbox_events
+        SELECT * FROM academic_schema.outbox_events
         WHERE status = 'PENDING'
         ORDER BY created_at
         LIMIT $1
@@ -18,21 +18,21 @@ public interface OutboxEventRepository
     Flux<OutboxEvent> findPending(int limit);
 
     @Query("""
-        UPDATE hr_schema.outbox_events
+        UPDATE academic_schema.outbox_events
         SET status = 'SENT', published_at = NOW()
         WHERE outbox_id = :id
         """)
     Mono<Void> markSent(Long id);
 
     @Query("""
-        UPDATE hr_schema.outbox_events
+        UPDATE academic_schema.outbox_events
         SET retry_count = retry_count + 1
         WHERE outbox_id = :id
         """)
     Mono<Void> incrementRetry(Long id);
 
     @Query("""
-    UPDATE hr_schema.outbox_events
+    UPDATE academic_schema.outbox_events
     SET status = 'FAILED', published_at = NOW()
     WHERE outbox_id = $1
 """)

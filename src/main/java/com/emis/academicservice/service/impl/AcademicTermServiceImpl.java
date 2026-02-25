@@ -1,4 +1,4 @@
-package com.emis.academicservice.service.imp;
+package com.emis.academicservice.service.impl;
 
 import com.emis.academicservice.cache.SchoolCacheService;
 import com.emis.academicservice.domain.db.AcademicTerm;
@@ -27,6 +27,7 @@ public class AcademicTermServiceImpl implements AcademicTermService {
         return schoolCacheService.getSchoolIdByCode(schoolCode)
                 .flatMap(schoolId -> academicTermRepository.save(AcademicTerm.builder()
                                 .termCode(request.termCode())
+                                .academicYear(request.academicYear())
                         .name(request.name())
                         .startDate(request.startDate())
                         .endDate(request.endDate())

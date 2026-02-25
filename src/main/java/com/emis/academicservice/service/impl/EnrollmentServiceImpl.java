@@ -1,4 +1,4 @@
-package com.emis.academicservice.service.imp;
+package com.emis.academicservice.service.impl;
 
 import com.emis.academicservice.domain.db.Enrollment;
 import com.emis.academicservice.dto.request.EnrollStudentRequest;
@@ -103,7 +103,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             ex -> {
               if (ex.getMessage().contains("chk_class_capacity")) {
                 return new ClassCapacityExceededException("Class capacity exceeded", ex);
-              } else if (ex.getMessage().contains("enrollment_student_class_key")) {
+              } else if (ex.getMessage().contains("violates unique constraint")) {
                 return new AlreadyExistsException("Duplicate enrollment");
               }
               return new EnrollmentFailureException("DB error::::", ex);
@@ -123,9 +123,36 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                                 .findByStudentNumberAndClassId(studentNumber, classProjection.getClassId())
                         .switchIfEmpty(
                                 Mono.error(
-                                        new StudentNotFoundException("Student not found: " + studentNumber)))
+                                        new ResourceNotFoundException("Student not found: " + studentNumber)))
                         .map(enrollment ->
                                 EnrollmentResponse.from(enrollment, schoolCode, classProjection.getClassName()))
                 );
+    }
+
+    @Override
+    public Mono<EnrollmentResponse> removeStudentFromClass(Long classId, String studentNumber, String schoolCode) {
+        return schoolClassRepository
+                .findClassBySchoolCodeAndId(schoolCode, classId)
+                .switchIfEmpty(
+                        Mono.error(
+                                new SchoolClassNotFoundException("Class not found: " + classId)))
+                .flatMap(
+                        classProjection -> enrollmentRepository
+                                .findByStudentNumberAndClassId(studentNumber, classProjection.getClassId())
+                        .switchIfEmpty(
+                                Mono.error(
+                                        new ResourceNotFoundException("Student not found: " + studentNumber)))
+                )
+                .flatMap( enrollment ->
+                        enrollmentRepository.softDeleteByStudentNumberAndClassId(studentNumber, classId)
+                )
+                .flatMap(rows -> {
+                    if (rows == 0) {
+                        return Mono.error(
+                                new ResourceNotFoundException(
+                                        "Student not enrolled in class: " + classId));
+                    }
+                    return Mono.empty();
+                });
     }
 }

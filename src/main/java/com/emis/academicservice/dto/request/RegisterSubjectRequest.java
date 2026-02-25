@@ -25,7 +25,10 @@ public class RegisterSubjectRequest {
     @NotNull
     @NotNull(message = "grade level is required")
     private GradeLevel gradeLevel;
+    @NotNull(message = "status is required")
+
     private SubjectStatus status;
+    @NotNull(message = "stage is required")
     private SchoolStage stage;
 
 }

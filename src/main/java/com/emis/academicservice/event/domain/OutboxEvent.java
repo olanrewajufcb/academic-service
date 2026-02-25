@@ -10,8 +10,9 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
-@Table(schema = "hr_schema", name = "outbox_events")
+@Table(schema = "academic_schema", name = "outbox_events")
 @Data
 @Builder
 @AllArgsConstructor
@@ -21,7 +22,7 @@ public class OutboxEvent {
     @Id
     private Long outboxId;
 
-    private String eventId;
+    private UUID eventId;
     private String aggregateType;
     private String aggregateId;
     private String eventType;

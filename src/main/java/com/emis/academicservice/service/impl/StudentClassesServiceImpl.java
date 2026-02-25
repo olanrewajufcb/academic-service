@@ -1,4 +1,4 @@
-package com.emis.academicservice.service.imp;
+package com.emis.academicservice.service.impl;
 
 import com.emis.academicservice.dto.response.StudentMarksResponse;
 import com.emis.academicservice.dto.response.SubjectName;

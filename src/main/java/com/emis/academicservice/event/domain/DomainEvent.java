@@ -4,15 +4,16 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Data
 @Builder
 public class DomainEvent<T> {
-    private String eventId;
+    private UUID eventId;
     private String eventType;
     private int eventVersion;
     private Instant occurredAt;
     private String producer;
-    private String correlationId;
+    private UUID correlationId;
     private T data;
 }

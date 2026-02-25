@@ -28,6 +28,7 @@ public class StudentAttendanceEventPublisher {
                         .setHeader("eventType", outboxEvent.getEventType())
                         .build()
                 );
+            log.info("Sending to binding {} result: {}", outboxEvent.getTopic(), sent);
 
             if (!sent) {
                 throw new IllegalStateException("Failed to send Kafka message");

@@ -16,6 +16,5 @@ public interface SectionEnrollmentMapper {
     @Mapping(target = "enrollmentDate", ignore = true)
     SectionEnrollment toEntity(EnrollStudentInClassSectionRequest request);
 
-    SectionEnrollmentResponse toResponse(SectionEnrollment enrollment);
 
 }

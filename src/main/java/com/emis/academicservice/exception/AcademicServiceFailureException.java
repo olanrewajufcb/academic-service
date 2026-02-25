@@ -1,6 +1,8 @@
 package com.emis.academicservice.exception;
 
+import lombok.Getter;
 
+@Getter
 public class AcademicServiceFailureException extends RuntimeException {
 
   private final String fieldName;

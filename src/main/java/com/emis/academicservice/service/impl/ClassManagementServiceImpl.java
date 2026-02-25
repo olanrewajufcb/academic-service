@@ -1,4 +1,4 @@
-package com.emis.academicservice.service.imp;
+package com.emis.academicservice.service.impl;
 
 import com.emis.academicservice.cache.SchoolCacheService;
 import com.emis.academicservice.config.ServiceConfigurationProperties;
@@ -75,7 +75,7 @@ public class ClassManagementServiceImpl implements ClassManagementService {
             ex -> {
               if (ex instanceof DuplicateKeyException) {
                 log.error("Class already exists | requestId: {}", requestId);
-                return new DuplicateClassException("Class already exists " + requestId);
+                return new DuplicateClassException("Class already exists for schoolCode: " + request.getSchoolCode());
               } else if (ex instanceof DataIntegrityViolationException) {
                 log.error("DB constraint failed | requestId::::", ex);
                 return new SchoolClassFailureException("DB constraint failed ", ex);
@@ -84,9 +84,9 @@ public class ClassManagementServiceImpl implements ClassManagementService {
                 return new SchoolNotFoundException(ex.getMessage());
               }
               else if (ex instanceof SchoolServiceException) {
-                log.error("School not found error occurred | requestId: {}", requestId);
+                log.error("School not found error occurred | requestId: {}", requestId, ex);
                 return new SchoolServiceException(
-                    ex.getMessage() + request.getSchoolCode(), ex);
+                    ex.getMessage() + request.getSchoolCode());
               }
               return new SchoolClassCreationException(
                   "Failed to create school class " + requestId, ex);
@@ -158,13 +158,14 @@ public class ClassManagementServiceImpl implements ClassManagementService {
         long offset = pageable.getOffset();
         String sortColumn = getDbSortColumn(pageable.getSort());
     return Mono.zip(schoolClassRepository
-        .getAllStudentsClass(classId, pageSize, offset, sortColumn).collectList(),
+        .getAllStudentsInClass(classId, pageSize, offset, sortColumn).collectList(),
             schoolClassRepository.countActiveStudentsInClass(classId)
         )
             .timeout(Duration.ofSeconds(3))
             .flatMap(tuple -> {
 
              List<StudentsInClassRow> studentsInClassRows =   tuple.getT1();
+             log.info("Successfully retrieved students ::::::: {}", studentsInClassRows.getFirst());
               long total =  tuple.getT2();
 
              List<StudentInClassResponse> responses = total == 0

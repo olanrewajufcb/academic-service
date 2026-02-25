@@ -27,18 +27,24 @@ public class StaffAssignmentHandler {
     private final ObjectMapper objectMapper;
 
     public Mono<Void> handle(DomainEvent<JsonNode> event) {
+        log.info("Inside handle method :::::: {}", event);
 
         return consumedEventRepository.existsById(event.getEventId())
+            .doOnSubscribe(s -> log.info("Subscribed to handle Mono for eventId: {}", event.getEventId()))
+            .doOnNext(alreadyProcessed -> log.info("EventId: {}, alreadyProcessed: {}", event.getEventId(), alreadyProcessed))
             .flatMap(alreadyProcessed -> {
                 if (Boolean.TRUE.equals(alreadyProcessed)) {
                     log.info("Event {} already processed, skipping", event.getEventId());
                     return Mono.empty();
                 }
-
+                log.info("Processing event now ::::::::: {}", event.getEventId());
                 return applyAssignment(event)
                     .then(markEventConsumed(event))
-                    .as(transactionalOperator::transactional);
-            });
+                    .as(transactionalOperator::transactional)
+                    .doOnSuccess(v -> log.info("Successfully processed event {}", event.getEventId()))
+                    .doOnError(e -> log.error("Error processing event {}", event.getEventId(), e));
+            })
+            .doOnTerminate(() -> log.info("Terminated handle Mono for eventId: {}", event.getEventId()));
     }
 
     private Mono<Void> applyAssignment(DomainEvent<JsonNode> event) {
@@ -48,23 +54,34 @@ public class StaffAssignmentHandler {
                         event.getData(),
                         StaffAssignedEvent.class
                 );
+        log.info("Logging the staff assignment event ::::::: {}", event.getData());
 
         return classSectionRepository
             .findById(payload.getSectionId())
             .switchIfEmpty(Mono.error(
-                new ResourceNotFoundException("Class section not found")))
+                new ResourceNotFoundException("Class section not found with the given id: " + payload.getSectionId())))
             .flatMap(section -> {
 
                 // Idempotent guard
-                if (payload.getStaffId().equals(section.getTeacherId())) {
+                Long existingTeacher = section.getTeacherId();
+                Long incomingTeacher = payload.getStaffId();
+                log.info("Existing teacher: {}, Incoming teacher: {}", existingTeacher, incomingTeacher);
+
+                if (existingTeacher != null && existingTeacher.equals(incomingTeacher)) {
                     return Mono.empty();
                 }
 
+
                 section.setTeacherId(payload.getStaffId());
-                section.setTeacherCode(payload.getStaffCode());
+                section.setStaffCode(payload.getStaffCode());
                 section.setTeacherName(payload.getStaffName());
 
-                return classSectionRepository.save(section).then();
+                return classSectionRepository.save(section)
+                        .doOnSuccess(saved ->
+                                log.info("Assigned teacher {} to section {}",
+                                        payload.getStaffId(),
+                                        section.getSectionId()))
+                        .then();
             });
     }
 
@@ -75,6 +92,7 @@ public class StaffAssignmentHandler {
              (ConsumedEvent.builder()
                      .eventId(event.getEventId())
                      .eventType(event.getEventType())
+                     .consumedAt(java.time.Instant.now())
                      .build())
         ).then();
     }

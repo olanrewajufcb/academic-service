@@ -190,7 +190,27 @@ public class GlobalExceptionHandler {
         if (ex.getSearchValue() != null) {
             response.put("searchValue", ex.getSearchValue());
         }
+        return response;
+    }
 
+    @ExceptionHandler(AcademicServiceFailureException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, Object> handleAcademicServiceFailure(AcademicServiceFailureException ex) {
+        log.error("School not found: {}", ex.getMessage());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put(TIMESTAMP, LocalDateTime.now());
+        response.put(STATUS, HttpStatus.NOT_FOUND.value());
+        response.put(ERROR, "Not Found");
+        response.put(MESSAGE, ex.getMessage());
+
+        // Add field information if available
+        if (ex.getFieldName() != null) {
+            response.put(FIELD, ex.getFieldName());
+        }
+        if (ex.getFieldName() != null) {
+            response.put("fieldName", ex.getFieldName());
+        }
         return response;
     }
 
@@ -203,35 +223,77 @@ public class GlobalExceptionHandler {
         response.put(TIMESTAMP, LocalDateTime.now());
         response.put(STATUS, HttpStatus.SERVICE_UNAVAILABLE.value());
         response.put(ERROR, "Service Unavailable");
-        response.put(MESSAGE, "School service is temporarily unavailable");
+        response.put(MESSAGE, ex.getMessage());
 
         return response;
     }
 
-//    @ExceptionHandler(StudentServiceFailureException.class)
-//    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-//    public Map<String, Object> handleSchoolServiceFailure(StudentServiceFailureException ex) {
-//        log.error("School service failure: ", ex);
-//
-//        Map<String, Object> response = new HashMap<>();
-//        response.put(TIMESTAMP, LocalDateTime.now());
-//        response.put(STATUS, HttpStatus.INTERNAL_SERVER_ERROR.value());
-//        response.put(ERROR, "Internal Server Error");
-//        response.put(MESSAGE, ex.getMessage());
-//
-//        return response;
-//    }
+    @ExceptionHandler(DuplicateClassException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, Object> handleDuplicateClassException(DuplicateClassException ex) {
+        log.error("Class creation failure: ", ex);
 
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, Object> handleGenericException(Exception ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put(TIMESTAMP, LocalDateTime.now());
+        response.put(STATUS, HttpStatus.CONFLICT.value());
+        response.put(ERROR, "Conflic");
+        response.put(MESSAGE, ex.getMessage());
+
+        return response;
+    }
+
+    @ExceptionHandler(ClassSectionCreationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, Object> handleClassSectionException(ClassSectionCreationException ex) {
+        log.error("Class creation failure: ", ex);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put(TIMESTAMP, LocalDateTime.now());
+        response.put(STATUS, HttpStatus.BAD_REQUEST.value());
+        response.put(ERROR, "Bad Request");
+        response.put(MESSAGE, ex.getMessage());
+
+        return response;
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, Object> handleValidationException(ValidationException ex) {
+        log.error("Subject creation failure: ", ex);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put(TIMESTAMP, LocalDateTime.now());
+        response.put(STATUS, HttpStatus.BAD_REQUEST.value());
+        response.put(ERROR, "BadRequest");
+        response.put(MESSAGE, ex.getMessage());
+
+        return response;
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, Object> handleResourceNotFound(ResourceNotFoundException ex) {
+        log.error("School service is down: ", ex);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put(TIMESTAMP, LocalDateTime.now());
+        response.put(STATUS, HttpStatus.NOT_FOUND.value());
+        response.put(ERROR, "Resource Not found");
+        response.put(MESSAGE, ex.getMessage());
+
+        return response;
+    }
+
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, Object> handleResourceAlreadyExistsException(ResourceAlreadyExistsException ex) {
         log.error("Unexpected error: ", ex);
 
         Map<String, Object> response = new HashMap<>();
         response.put(TIMESTAMP, LocalDateTime.now());
-        response.put(STATUS, HttpStatus.INTERNAL_SERVER_ERROR.value());
-        response.put(ERROR, "Internal Server Error");
-        response.put(MESSAGE, "An unexpected error occurred");
+        response.put(STATUS, HttpStatus.BAD_REQUEST.value());
+        response.put(ERROR, "Invalid Request");
+        response.put(MESSAGE, "Bad Request");
         response.put("details", ex.getMessage());
 
         return response;

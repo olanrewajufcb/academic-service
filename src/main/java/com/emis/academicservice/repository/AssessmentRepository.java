@@ -21,7 +21,7 @@ public interface AssessmentRepository extends R2dbcRepository<Assessment, Long> 
         AND (:assessmentType IS NULL OR a.assessment_type = :assessmentType)
         AND (:term IS NULL OR at.term_code = :term)
         ORDER BY a.due_date DESC
-        LIMIT :size OFFSET :offset
+        LIMIT :size OFFSET :offset AND a.is_deleted = FALSE
     """)
     Flux<Assessment> findBySectionIdAndSchoolId(
             @Param("sectionId") Long sectionId,
@@ -52,7 +52,7 @@ public interface AssessmentRepository extends R2dbcRepository<Assessment, Long> 
         SELECT a.* FROM assessment a
         JOIN class_sections cs ON a.section_id = cs.section_id
         JOIN school_classes sc ON cs.class_id = sc.class_id
-        WHERE a.assessment_id = :assessmentId AND sc.school_id = :schoolId
+        WHERE a.assessment_id = :assessmentId AND sc.school_id = :schoolId AND a.is_deleted = FALSE
     """)
     Mono<Assessment> findByAssessmentIdAndSchoolId(Long assessmentId, Long schoolId);
 

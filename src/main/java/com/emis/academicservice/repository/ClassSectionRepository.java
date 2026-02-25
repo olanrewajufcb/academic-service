@@ -1,7 +1,6 @@
 package com.emis.academicservice.repository;
 
 import com.emis.academicservice.domain.db.ClassSection;
-import com.emis.academicservice.domain.db.SchoolClass;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.data.repository.query.Param;
@@ -9,38 +8,23 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface ClassSectionRepository extends R2dbcRepository<ClassSection, Long> {
-    @Query("""
-            SELECT * FROM class_sections WHERE class_id = :classId
-            ORDER BY section_id LIMIT :size OFFSET :offset
-""" )
-    Flux<ClassSection> findByClassId(Long classId, int size, long offset);
-    
-    @Query("SELECT * FROM class_sections WHERE teacher_id = :teacherId")
-    Flux<ClassSection> findByTeacherId(Long teacherId);
-    
-    @Query("SELECT * FROM class_sections WHERE subject_id = :subjectId")
-    Flux<ClassSection> findBySubjectId(Long subjectId);
-
-    Mono<ClassSection> findByClassIdAndSubjectId(Long classId, Long subjectId);
-
 
     @Query("""
         SELECT * from class_sections 
-        WHERE class_id = $1
+        WHERE class_id = $1 AND is_deleted = FALSE
         ORDER BY 
             CASE 
                 WHEN $2 = 'sectionId' THEN section_id
                 WHEN $2 = 'subjectId' THEN subject_id
                 ELSE section_id
             END 
-        LIMIT  $3 OFFSET $4
+        LIMIT $3 OFFSET $4 
     """)
     Flux<ClassSection> findPageByClassId(Long classId, String sortBy, int limit, long offset);
 
     @Query("SELECT COUNT(*) FROM class_sections WHERE class_id = $1 AND is_deleted = FALSE")
     Mono<Long> countByClassId(Long classId);
 
-    Mono<SchoolClass> findBySchoolIdAndClassId(Long schoolId, Long classId);
 
 
     @Query("""
@@ -48,7 +32,8 @@ public interface ClassSectionRepository extends R2dbcRepository<ClassSection, Lo
         cs.section_id,
         cs.class_id,
         sc.school_id,
-        sc.school_code
+        sc.school_code,
+        sc.academic_year
     FROM class_sections cs
     JOIN school_classes sc ON cs.class_id = sc.class_id
     WHERE cs.section_id = $1 
@@ -59,9 +44,8 @@ public interface ClassSectionRepository extends R2dbcRepository<ClassSection, Lo
     @Query("""
         SELECT cs.* FROM class_sections cs
         JOIN school_classes sc ON cs.class_id = sc.class_id
-        JOIN schools s ON sc.school_id = s.school_id
         WHERE cs.section_id = :sectionId 
-        AND s.school_code = :schoolCode
+        AND cs.school_code = :schoolCode AND cs.is_deleted = FALSE
     """)
     Mono<ClassSection> findBySectionIdAndSchoolCode(
             @Param("sectionId") Long sectionId,
@@ -71,7 +55,7 @@ public interface ClassSectionRepository extends R2dbcRepository<ClassSection, Lo
         SELECT cs.* FROM class_sections cs
         JOIN school_classes sc ON cs.class_id = sc.class_id
         WHERE cs.section_id = :sectionId 
-        AND sc.school_id = :schoolId
+        AND cs.school_id = :schoolId AND cs.is_deleted = FALSE
     """)
     Mono<ClassSection> findBySectionIdAndSchoolId(
             @Param("sectionId") Long sectionId,
@@ -80,27 +64,106 @@ public interface ClassSectionRepository extends R2dbcRepository<ClassSection, Lo
     @Query("""
         SELECT cs.* FROM class_sections cs
         WHERE cs.class_id = $1 
-        AND cs.staff_code = $2
+        AND cs.staff_code = $3 AND cs.is_deleted = FALSE
     """)
-    Flux<ClassSection> findAllByClassIdAndStaffCode(Long classId, String staffCode);
-
-    @Query("""
-        SELECT cs.* FROM class_sections cs
-        WHERE cs.class_id = $1 
-        AND cs.section_id = $2 
-        AND cs.teacher_code = $3
-    """)
-    Mono<ClassSection> findByClassIdAndSectionIdAndTeacherCode(Long classId, Long sectionId, String staffCode);
+    Mono<ClassSection> findByClassIdAndSectionIdAndTeacherCode(Long classId, String staffCode);
 
     @Query("""
     UPDATE academic_schema.class_sections
     SET teacher_id = NULL,
-        teacher_code = NULL,
+        staff_code = NULL,
         teacher_name = ''
     WHERE school_code = :schoolCode
-      AND teacher_id = :staffId
+      AND teacher_id = :staffId AND is_deleted = FALSE
 """)
     Mono<Integer> unassignStaffFromSchool(String schoolCode, Long staffId);
+
+
+  @Query(
+      """
+        SELECT cs.section_id,
+               cs.room,
+               cs.max_capacity,
+               cs.current_enrollment,
+               cs.staff_code,
+               cs.teacher_name,
+               s.school_code,
+               s.subject_code,
+               s.name as subject_name,
+               s.grade_level
+               from class_sections cs
+                JOIN subjects s ON 
+                cs.subject_id = s.subject_id 
+        WHERE  cs.class_id = $1 
+          AND cs.is_deleted = FALSE
+        AND s.is_deleted = FALSE
+        ORDER BY
+            CASE
+                WHEN $2 = 'sectionId' THEN cs.section_id
+                WHEN $2 = 'subjectId' THEN cs.subject_id
+                ELSE cs.section_id
+            END
+        LIMIT $3 OFFSET $4
+    """)
+  Flux<SubjectWithSectionProjection> findPageByClassIdThenJoinWithSubject(
+      Long classId, String sortBy, int limit, long offset);
+
+  @Query("""
+    SELECT EXISTS(
+        SELECT 1 FROM class_sections
+        WHERE school_code = $1 AND is_deleted = FALSE
+    )
+""")
+  Mono<Boolean> existsBySchoolCode(String schoolCode);
+
+
+
+    @Query(
+            """
+              SELECT cs.section_id,
+                     cs.room,
+                     cs.max_capacity,
+                     cs.current_enrollment,
+                     cs.teacher_name,
+                     s.school_code,
+                     s.subject_code,
+                     s.name as subject_name,
+                     s.grade_level
+                     from class_sections cs
+                      JOIN subjects s ON 
+                      cs.subject_id = s.subject_id 
+              WHERE  cs.school_code = $1 
+                AND cs.staff_code = $2
+                AND cs.is_deleted = FALSE
+              AND s.is_deleted = FALSE
+              ORDER BY
+                  CASE
+                      WHEN $2 = 'sectionId' THEN cs.section_id
+                      WHEN $2 = 'subjectId' THEN cs.subject_id
+                      ELSE cs.section_id
+                  END
+              LIMIT $3 OFFSET $4
+          """)
+    Flux<SubjectWithSectionProjection> findBySchoolCodeAndTeacherCode(
+            String schoolCode, String staffCode, int limit, long offset);
+
+    @Query(
+            """
+              SELECT COUNT(*)
+              FROM class_sections cs
+              JOIN subjects s ON cs.subject_id = s.subject_id 
+              WHERE cs.school_code = $1 
+                AND cs.staff_code = $2
+                AND cs.is_deleted = FALSE
+              AND s.is_deleted = FALSE
+          """)
+    Mono<Long> countBySchoolCodeAndTeacherCode(String schoolCode, String staffCode);
+
+
+    Flux<ClassSection> findAllByClassIdAndSchoolCode(
+            Long classId,
+            String schoolCode);
+
 
 }
 

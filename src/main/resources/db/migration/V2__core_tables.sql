@@ -10,6 +10,7 @@ CREATE TABLE academic_schema.academic_term (
                                                term_code VARCHAR(20) NOT NULL,
                                                name VARCHAR(100) NOT NULL,
                                                start_date DATE NOT NULL,
+                                               academic_year VARCHAR(10) NOT NULL,
                                                end_date DATE NOT NULL,
                                                is_current BOOLEAN DEFAULT FALSE NOT NULL,
                                                is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
@@ -61,9 +62,13 @@ CREATE TABLE academic_schema.school_classes (
                                                 deleted_at TIMESTAMPTZ DEFAULT NULL,
                                                 created_at TIMESTAMPTZ DEFAULT NOW(),
                                                 updated_at TIMESTAMPTZ DEFAULT NOW(),
-                                                UNIQUE(school_id, class_name, academic_year, deleted_at),
                                                 CHECK (current_students <= max_students)
 );
+
+
+CREATE UNIQUE INDEX uk_active_class
+    ON academic_schema.school_classes (school_id, class_name, academic_year)
+    WHERE deleted_at IS NULL;
 
 -- 4. CLASS_SECTIONS
 CREATE TABLE academic_schema.class_sections (
@@ -85,9 +90,11 @@ CREATE TABLE academic_schema.class_sections (
                                                 deleted_at TIMESTAMPTZ DEFAULT NULL,
                                                 created_at TIMESTAMPTZ DEFAULT NOW(),
                                                 updated_at TIMESTAMPTZ DEFAULT NOW(),
-                                                UNIQUE(class_id, subject_id, deleted_at),
                                                 CHECK (current_enrollment <= max_capacity)
 );
+CREATE UNIQUE INDEX uk_active_section
+    ON academic_schema.class_sections (class_id, subject_id)
+    WHERE deleted_at IS NULL;
 
 -- 5. ENROLLMENT
 CREATE TABLE academic_schema.enrollments (
@@ -145,6 +152,53 @@ CREATE TABLE academic_schema.assessments (
                                                  UNIQUE (section_id, term_id, name, deleted_at)
 );
 
+CREATE TABLE academic_schema.lessons (
+                                         lesson_id BIGSERIAL PRIMARY KEY,
+                                         section_id BIGINT NOT NULL
+                                             REFERENCES academic_schema.class_sections(section_id) ON DELETE RESTRICT,
+                                         term_id BIGINT NOT NULL
+                                             REFERENCES academic_schema.academic_term(term_id) ON DELETE RESTRICT,
+                                         school_id BIGINT NOT NULL,
+                                         school_code VARCHAR(20) NOT NULL,
+                                         lesson_title VARCHAR(200) NOT NULL,
+                                         topic VARCHAR(200),
+                                         description TEXT,
+                                         lesson_date DATE NOT NULL,
+                                         start_time TIME NOT NULL,
+                                         end_time TIME NOT NULL,
+                                         teacher_id BIGINT NOT NULL,
+                                         teacher_name VARCHAR(100),
+                                         status VARCHAR(20) DEFAULT 'SCHEDULED' NOT NULL,
+                                         materials JSONB,
+                                         homework_due_date DATE,
+                                         homework_description TEXT,
+                                         is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+                                         deleted_at TIMESTAMPTZ DEFAULT NULL,
+                                         created_at TIMESTAMPTZ DEFAULT NOW(),
+                                         updated_at TIMESTAMPTZ DEFAULT NOW(),
+                                         CONSTRAINT no_overlapping_lessons
+                                             EXCLUDE USING gist (
+                                                section_id WITH =,
+                                                tsrange(
+                                                     (lesson_date + start_time),
+                                                     (lesson_date + end_time)
+                                                ) WITH &&
+                                             )
+                                             WHERE (deleted_at IS NULL),
+                                         CONSTRAINT no_teacher_double_booking
+                                             EXCLUDE USING gist (
+                                                teacher_id WITH =,
+                                                tsrange(
+                                                     (lesson_date + start_time),
+                                                     (lesson_date + end_time)
+                                                ) WITH &&
+                                             )
+                                            WHERE (deleted_at IS NULL AND teacher_id IS NOT NULL),
+                                         CONSTRAINT chk_lesson_times
+                                             CHECK (start_time IS NULL OR end_time IS NULL OR start_time < end_time)
+);
+
+
 -- 8. MARKBOOK_ENTRY
 CREATE TABLE academic_schema.markbook_entry (
                                                 mark_entry_id BIGSERIAL PRIMARY KEY,
@@ -163,25 +217,30 @@ CREATE TABLE academic_schema.markbook_entry (
 );
 
 -- 9. ATTENDANCE
-CREATE TABLE academic_schema.attendance (
+CREATE TABLE academic_schema.student_attendance (
                                             attendance_id BIGSERIAL PRIMARY KEY,
-                                            section_id BIGINT NOT NULL REFERENCES academic_schema.class_sections(section_id) ON DELETE RESTRICT, -- No cascade
+                                            lesson_id BIGINT NOT NULL REFERENCES academic_schema.lessons(lesson_id) ON DELETE RESTRICT, -- No cascade
                                             student_id BIGINT NOT NULL, -- External FK
                                             student_number VARCHAR(100) NOT NULL,
                                             student_name VARCHAR(100) NOT NULL,
                                             school_code VARCHAR(20) NOT NULL,
-                                            attendance_date DATE NOT NULL,
                                             attendance_status VARCHAR(20) NOT NULL,
                                             notes TEXT,
                                             recorded_at TIMESTAMPTZ DEFAULT NOW(),
                                             recorded_by BIGINT,  -- External FK (staff ID)
                                             is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
                                             deleted_at TIMESTAMPTZ DEFAULT NULL,
-                                            created_at TIMESTAMPTZ DEFAULT NOW(),
-                                            UNIQUE(section_id, student_id, attendance_date, deleted_at),
-                                            CHECK (attendance_date <= CURRENT_DATE)
+                                            created_at TIMESTAMPTZ DEFAULT NOW()
 
 );
+CREATE INDEX idx_attendance_student_active
+ON academic_schema.student_attendance(lesson_id, student_id)
+WHERE deleted_at IS NULL;
+
+CREATE INDEX idx_attendance_lesson_active
+    ON academic_schema.student_attendance(lesson_id)
+    WHERE deleted_at IS NULL;
+
 
 -- 10. TERM_SCORES
 CREATE TABLE academic_schema.term_scores (

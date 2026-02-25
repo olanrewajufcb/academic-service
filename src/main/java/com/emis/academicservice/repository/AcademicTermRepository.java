@@ -34,7 +34,7 @@ cs.school_id = $2
 AND 
 at.name = $3
 ORDER BY  at.start_date DESC, cs.subject_id
-LIMIT $4 OFFSET $5
+LIMIT $4 OFFSET $5 AND at.is_deleted = FALSE
 """)
   Flux<StudentMarksResponse> getStudentMarks(
       Long studentId, Long schoolId, String academicYear, int size, long offset);

@@ -2,8 +2,11 @@ package com.emis.academicservice.controller;
 
 import com.emis.academicservice.domain.db.ClassSection;
 import com.emis.academicservice.dto.request.CreateClassSectionRequest;
+import com.emis.academicservice.dto.request.CreateLessonRequest;
 import com.emis.academicservice.dto.request.StaffUpdateRequest;
 import com.emis.academicservice.dto.response.ClassSectionResponse;
+import com.emis.academicservice.dto.response.ClassSectionWithSubjectResponse;
+import com.emis.academicservice.dto.response.LessonResponse;
 import com.emis.academicservice.exception.BadRequestException;
 import com.emis.academicservice.service.ClassSectionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
@@ -53,10 +57,10 @@ public class ClassSectionController {
 
     }
 
-    @Operation(summary = "Get all class sections for a given class")
+    @Operation(summary = "Get all sections/subjects for a given class")
     @GetMapping("/schools/{schoolCode}/classes/{classId}/sections")
     @ResponseStatus(HttpStatus.OK)
-    public Mono<Page<ClassSectionResponse>> getAllClassSectionsByClassId(
+    public Mono<Page<ClassSectionWithSubjectResponse>> getAllClassSectionsByClassId(
             @PathVariable Long classId,
             @PathVariable String schoolCode,
             @RequestParam(defaultValue = "0")
@@ -80,18 +84,17 @@ public class ClassSectionController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
-    @Operation(summary = "Get a class sections for a given class with a staff code")
-    @GetMapping("/schools/{schoolCode}/classes/{classId}/sections/{sectionId}")
+    @Operation(summary = "Get all class sections for a given class with a staff code")
+    @GetMapping("/schools/{schoolCode}/classes/{classId}")
     @ResponseStatus(HttpStatus.OK)
     public Mono<ClassSectionResponse> getAllClassSectionsByClassIdAndStaffCode(
             @PathVariable Long classId,
             @PathVariable String schoolCode,
-            @PathVariable Long sectionId,
             @RequestParam String staffCode
     ){
         String requestId = UUID.randomUUID().toString();
-        return service.getClassSectionsByClassIdAndStaffCode(classId, sectionId, schoolCode, staffCode, requestId)
-                .doOnSubscribe(sub -> log.info("Creating class sections with id {}", requestId))
+        return service.getClassSectionsByClassIdAndStaffCode(classId, schoolCode, staffCode, requestId)
+                .doOnSubscribe(sub -> log.info("Retrieving the class section with id {}", requestId))
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
@@ -109,5 +112,42 @@ public class ClassSectionController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
             }
 
+
+    @Operation(summary = "Create a lesson for a given section",
+    description = "Create a lesson for a given subject ")
+    @PostMapping("/schools/{schoolCode}/sections/{sectionId}/lessons")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Mono<LessonResponse> createLesson(
+            @PathVariable String schoolCode,
+            @PathVariable Long sectionId,
+            @Valid @RequestBody CreateLessonRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        return service.createLesson(schoolCode, sectionId, request, requestId)
+                .doOnSubscribe(sub -> log.info("Creating lesson with id {}", requestId))
+                .contextWrite(ctx -> ctx.put("requestId", requestId));
+    }
+
+    @Operation(summary = "Get all class sections for a given class with a staff code")
+    @GetMapping("/schools/{schoolCode}/staff/{staffCode}")
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<Page<ClassSectionWithSubjectResponse>> getAllClassSectionsByClassIdAndStaffCode(
+            @PathVariable String schoolCode,
+            @PathVariable String staffCode,
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "page must not be less than 0")
+            int page,
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "size must be at least 1")
+            int size,
+            @RequestParam(defaultValue = "sectionId")
+            String sortBy
+    ){
+        String requestId = UUID.randomUUID().toString();
+
+        Pageable pageRequest = PageRequest.of(page, size, Sort.by(sortBy));
+        return service.getAllClassSectionsByStaffCode(schoolCode, staffCode, pageRequest, requestId)
+                .doOnSubscribe(sub -> log.info("Retrieving the class section with id {}", requestId))
+                .contextWrite(ctx -> ctx.put("requestId", requestId));
+    }
 
 }

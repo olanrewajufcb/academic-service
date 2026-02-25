@@ -1,4 +1,4 @@
-package com.emis.academicservice.service.imp;
+package com.emis.academicservice.service.impl;
 
 
 import com.emis.academicservice.cache.SchoolCacheService;
@@ -16,6 +16,7 @@ import com.emis.academicservice.service.MarkBookService;
 import com.emis.academicservice.service.client.StudentClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
@@ -59,7 +60,7 @@ public class MarkBookServiceImpl implements MarkBookService {
                                 "Assessment not found or doesn't belong to school " + request.assessmentId())))
                         .flatMap(assessment -> validateAssessmentForMarking(assessment, requestId))
                         .flatMap(assessment -> studentClientService.getStudentDetails(request.studentNumber(), request.schoolCode())
-                                .switchIfEmpty(Mono.error(new StudentNotFoundException("Student not found for: " + request.studentNumber())))
+                                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Student not found for: " + request.studentNumber())))
                                 .flatMap(student -> validateStudentEnrollment(student, assessment, requestId))
                                 .flatMap(student -> {
                                     MarkBookEntry markbookEntry = new MarkBookEntry();

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 public record CreateAcademicTermRequest(
     String termCode,
+    String academicYear,
     String name,
     LocalDate startDate,
     LocalDate endDate

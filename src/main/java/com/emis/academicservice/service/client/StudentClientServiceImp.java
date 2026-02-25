@@ -4,12 +4,11 @@ import com.emis.academicservice.config.ServiceConfigurationProperties;
 import com.emis.academicservice.dto.response.StudentDetailsResponse;
 import com.emis.academicservice.dto.response.StudentEnrollmentResponse;
 import com.emis.academicservice.exception.SchoolServiceUnavailableException;
-import com.emis.academicservice.exception.StudentNotFoundException;
+import com.emis.academicservice.exception.ResourceNotFoundException;
 import com.emis.academicservice.exception.StudentServiceException;
 import com.emis.academicservice.utils.ClientHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
@@ -47,7 +46,7 @@ public class StudentClientServiceImp implements StudentClientService {
                   "Exception occurred while trying to get school details for schoolId: {}",
                   studentNumber,
                   err);
-              return new StudentNotFoundException("Student not found for : " + studentNumber);
+              return new ResourceNotFoundException("Student not found for : " + studentNumber);
             })
         .onErrorMap(
             WebClientResponseException.class,
@@ -92,7 +91,7 @@ public class StudentClientServiceImp implements StudentClientService {
                                     "Exception occurred while trying to get school details for schoolId: {}",
                                     studentId,
                                     err);
-                            return new StudentNotFoundException("Student not found for : " + studentId);
+                            return new ResourceNotFoundException("Student not found for : " + studentId);
                         })
                 .onErrorMap(
                         WebClientResponseException.class,
@@ -148,7 +147,7 @@ public class StudentClientServiceImp implements StudentClientService {
                                     "Exception occurred while trying to get school details for schoolId: {}",
                                     studentId,
                                     err);
-                            return new StudentNotFoundException("Student not found for : " + studentId);
+                            return new ResourceNotFoundException("Student not found for : " + studentId);
                         })
                 .onErrorMap(
                         WebClientResponseException.class,

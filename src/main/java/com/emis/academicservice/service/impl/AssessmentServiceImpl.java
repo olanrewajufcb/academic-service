@@ -1,4 +1,4 @@
-package com.emis.academicservice.service.imp;
+package com.emis.academicservice.service.impl;
 
 import com.emis.academicservice.cache.SchoolCacheService;
 import com.emis.academicservice.domain.db.Assessment;

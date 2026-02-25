@@ -20,6 +20,7 @@ public class HrEventRouter {
     private final StaffTransferEventHandler staffTransferredHandler;
 
     public Mono<Void> route(DomainEvent<JsonNode> event) {
+        log.info("Inside router to process the event :::::: {}", event.getEventType());
         return switch (event.getEventType()) {
             case "STAFF_ASSIGNED_TO_CLASS" -> staffAssignedHandler.handle(event);
 

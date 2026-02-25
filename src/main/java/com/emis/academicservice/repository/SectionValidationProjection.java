@@ -1,8 +1,14 @@
 package com.emis.academicservice.repository;
 
-public interface SectionValidationProjection {
-    Long getSectionId();
-    Long getClassId();
-    Long getSchoolId();
-    String getSchoolCode();
+
+import lombok.Data;
+
+@Data
+public class SectionValidationProjection {
+    private Long sectionId;
+    private Long classId;
+    private Long schoolId;
+    private String schoolCode;
+    private String academicYear;
+
 }

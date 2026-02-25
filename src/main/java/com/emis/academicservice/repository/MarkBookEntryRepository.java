@@ -2,12 +2,9 @@ package com.emis.academicservice.repository;
 
 import com.emis.academicservice.domain.db.MarkBookEntry;
 import com.emis.academicservice.dto.response.MarkBookEntryDetail;
-import com.emis.academicservice.dto.response.MarkBookViewResponse;
-import com.emis.academicservice.enums.AssessmentType;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public interface MarkBookEntryRepository extends R2dbcRepository<MarkBookEntry, Long> {
 
@@ -34,9 +31,8 @@ public interface MarkBookEntryRepository extends R2dbcRepository<MarkBookEntry, 
  WHERE cs.section_id = $1
  AND 
      m.assessment_id = $2
- AND cs.academic_term = $3
+ AND cs.academic_term = $3 AND m.is_deleted = FALSE
  ORDER BY m.student_id
- 
 """)
   Flux<MarkBookEntryDetail> findBySectionAndAssessmentAndAcademicYear(Long sectionId, Long assessmentId, String academicYear);
 }

@@ -1,17 +1,17 @@
 package com.emis.academicservice.exception;
 
-public class StudentNotFoundException extends RuntimeException {
+public class ResourceNotFoundException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
-    public StudentNotFoundException(String studentNumber) {
+    public ResourceNotFoundException(String studentNumber) {
         this((Object) studentNumber);
     }
 
-    public StudentNotFoundException(Long studentId) {
+    public ResourceNotFoundException(Long studentId) {
         this((Object) studentId);
     }
 
-    private StudentNotFoundException(Object id) {
+    private ResourceNotFoundException(Object id) {
         super("Student not found with id: " + String.valueOf(id));
     }
 }

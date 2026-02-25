@@ -43,15 +43,16 @@ public class SchoolClientServiceImpl implements SchoolClientService {
                         schoolCode,
                         err);
                 if (err instanceof WebClientResponseException.NotFound ex) {
+                    log.error("School with code : {} does not exist ", schoolCode, ex);
                     return new SchoolNotFoundException(
-                            "School not found: " + schoolCode + ex.getMessage());
+                            "School with code : " + schoolCode + " does not exist");
                 } else if (err instanceof WebClientResponseException.ServiceUnavailable ex) {
                     log.error("School service unavailable: {}", schoolCode, ex);
                     return new SchoolServiceUnavailableException(
                             "School service error: " + ex.getStatusCode(), ex.getResponseBodyAsString());
                 }
-
-                return new SchoolServiceException("School service error: ", err);
+                log.error("School service error:::: {}", schoolCode, err);
+                return new SchoolServiceException("School service error: ");
             });
 
     }
@@ -77,13 +78,15 @@ public class SchoolClientServiceImpl implements SchoolClientService {
               } else if (err instanceof WebClientResponseException.ServiceUnavailable ex) {
                 return new SchoolServiceUnavailableException("School not found: " + schoolId, ex);
               }
-              return new SchoolServiceException("School service error: ", err);
+              log.error("School service error:::: {}", schoolId, err);
+              return new SchoolServiceException("School service error: ");
             });
     }
 
     @Override
     public Mono<Boolean> validateSchoolExistsByCode(String schoolCode) {
         var url = properties.getSchoolConfiguration().getValidateSchoolExistsUrl();
+        log.info("Logging validation url {}", url);
         var pathVariable = new ConcurrentHashMap<String, String>();
         pathVariable.put("schoolCode", schoolCode);
         return client
@@ -91,7 +94,7 @@ public class SchoolClientServiceImpl implements SchoolClientService {
                         url, pathVariable, ClientHelper.getHeaders(), Boolean.class)
                 .map(
                         response -> {
-                            log.info("School Details Response: {}", response);
+                            log.info("School Validation Response: {}", response);
                             return response;
                         })
 
@@ -105,7 +108,7 @@ public class SchoolClientServiceImpl implements SchoolClientService {
                         return new SchoolServiceUnavailableException("School not found: " + schoolCode, ex);
                     }
                     log.error("School service error:::: {}", schoolCode, err);
-                    return new SchoolServiceException("School service error ", err);
+                    return new SchoolServiceException("School service error ");
                 });
     }
 }

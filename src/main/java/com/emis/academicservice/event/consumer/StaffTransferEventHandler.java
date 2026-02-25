@@ -25,34 +25,37 @@ public class StaffTransferEventHandler {
 
 
     public Mono<Void> handle(DomainEvent<JsonNode> event) {
-
-     StaffTransferredEvent eventData =  objectMapper.convertValue(event.getData(), StaffTransferredEvent.class);
-        log.info(
-                "Processing STAFF_TRANSFERRED for staffCode={} from school={}",
-                eventData.getStaffCode(),
-                eventData.getFromSchoolCode()
+        log.info("Processing STAFF_TRANSFERRED for staffCode={} from school={}",
+                event.getData().path("staffCode").asText(),
+                event.getData().path("fromSchoolCode").asText()
         );
-    return consumedEventRepository
-        .existsById(event.getEventId())
-        .flatMap(
-            alreadyProcessed -> {
-              if (Boolean.TRUE.equals(alreadyProcessed)) {
-                log.info("Duplicate transfer event ignored: {}", event.getEventId());
-                return Mono.empty();
-              }
-              return unassignStaffFromOldSchool(eventData)
-                  .then(
-                      consumedEventRepository.save(ConsumedEvent.builder()
-                          .eventId(event.getEventId())
-                          .eventType(event.getEventType())
-                          .build()))
-                      .then();
-            })
-        .onErrorResume(
-            ex -> {
-              log.error("Failed processing staff transfer event {}", event.getEventId(), ex);
-              return Mono.empty(); // do NOT poison Kafka
-            });
+
+        return consumedEventRepository
+            .existsById(event.getEventId())
+            .doOnSubscribe(s -> log.info("Subscribed to handle Mono for eventId: {}", event.getEventId()))
+            .flatMap(
+                alreadyProcessed -> {
+                  if (Boolean.TRUE.equals(alreadyProcessed)) {
+                    log.info("Duplicate transfer event ignored: {}", event.getEventId());
+                    return Mono.empty();
+                  }
+                  StaffTransferredEvent eventData =  objectMapper.convertValue(event.getData(), StaffTransferredEvent.class);
+                  return unassignStaffFromOldSchool(eventData)
+                      .then(
+                          consumedEventRepository.save(ConsumedEvent.builder()
+                              .eventId(event.getEventId())
+                              .eventType(event.getEventType())
+                              .consumedAt(java.time.Instant.now())
+                              .build()))
+                          .then();
+                })
+            .doOnSuccess(v -> log.info("Successfully processed transfer event {}", event.getEventId()))
+            .onErrorResume(
+                ex -> {
+                  log.error("Failed processing staff transfer event {}", event.getEventId(), ex);
+                  return Mono.empty();
+                })
+            .doOnTerminate(() -> log.info("Terminated handle Mono for eventId: {}", event.getEventId()));
     }
 
     private Mono<Void> unassignStaffFromOldSchool(StaffTransferredEvent event) {

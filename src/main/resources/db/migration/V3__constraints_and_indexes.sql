@@ -1,16 +1,9 @@
--- =============================================
--- Academic Service Schema (Nigeria Context) - Soft Delete Version
--- Microservices: No FKs to external services
--- =============================================
+
 
 -- =============================================
 -- Indexes (Optimized for Microservices with Soft Delete)
 -- =============================================
 
--- Core lookup indexes (excluding soft-deleted records)
-CREATE INDEX idx_subjects_school_class_not_deleted
-    ON academic_schema.subjects(school_id, grade_level, subject_id)
-    WHERE deleted_at IS NULL;
 CREATE INDEX idx_school_classes_school_year_not_deleted
     ON academic_schema.school_classes(school_id, academic_year)
     WHERE deleted_at IS NULL;
@@ -36,9 +29,6 @@ CREATE INDEX idx_section_enrollment_student_not_deleted
     WHERE deleted_at IS NULL;
 CREATE INDEX idx_section_enrollment_section_not_deleted
     ON academic_schema.section_enrollments(section_id)
-    WHERE deleted_at IS NULL;
-CREATE INDEX idx_attendance_student_date_not_deleted
-    ON academic_schema.attendance(student_id, attendance_date)
     WHERE deleted_at IS NULL;
 
 CREATE INDEX idx_enrollments_class_active_name_not_deleted
@@ -71,11 +61,40 @@ CREATE INDEX idx_enrollments_deleted_at ON academic_schema.enrollments(deleted_a
 CREATE INDEX idx_section_enrollments_deleted_at ON academic_schema.section_enrollments(deleted_at);
 CREATE INDEX idx_assessments_deleted_at ON academic_schema.assessments(deleted_at);
 CREATE INDEX idx_markbook_entry_deleted_at ON academic_schema.markbook_entry(deleted_at);
-CREATE INDEX idx_attendance_deleted_at ON academic_schema.attendance(deleted_at);
+CREATE INDEX idx_attendance_deleted_at ON academic_schema.student_attendance(deleted_at);
 CREATE INDEX idx_term_scores_deleted_at ON academic_schema.term_scores(deleted_at);
-CREATE INDEX idx_attendance_section_date_active
-    ON academic_schema.attendance(section_id, attendance_date)
+
+
+
+-- Index for school_classes table to support the academic_year filter
+CREATE INDEX idx_school_classes_academic_year ON school_classes(academic_year) WHERE deleted_at IS NULL;
+
+
+-- Index for subjects table to support subject_id join
+CREATE INDEX idx_subjects_subject_id ON class_sections(class_id) WHERE deleted_at IS NULL;
+
+CREATE UNIQUE INDEX uq_subject_school_code_grade
+    ON academic_schema.subjects (school_id, subject_code, grade_level)
     WHERE deleted_at IS NULL;
+
+
+CREATE UNIQUE INDEX uk_term_per_school_year
+    ON academic_schema.academic_term (school_id, academic_year, term_code)
+    WHERE deleted_at IS NULL;
+
+CREATE UNIQUE INDEX uk_one_current_term_per_school
+    ON academic_schema.academic_term (school_id)
+    WHERE is_current = TRUE AND deleted_at IS NULL;
+
+-- to be reviewed later
+CREATE INDEX idx_term_school_year_active
+    ON academic_schema.academic_term(school_id, academic_year)
+    WHERE deleted_at IS NULL;
+
+CREATE INDEX idx_attendance_student_not_deleted
+    ON academic_schema.student_attendance(student_id)
+    WHERE deleted_at IS NULL;
+
 
 
 CREATE UNIQUE INDEX uk_enrollment_active
@@ -87,15 +106,22 @@ CREATE UNIQUE INDEX uk_academic_term_active
     WHERE deleted_at IS NULL;
 
 
--- Index for school_classes table to support the academic_year filter
-CREATE INDEX idx_school_classes_academic_year ON school_classes(academic_year);
 
--- Index for section_enrollments to support student_id filter and join
-CREATE INDEX idx_section_enrollments_student_id ON section_enrollments(student_id);
 
 -- Index for class_sections to support class_id join
-CREATE INDEX idx_class_sections_class_id ON class_sections(class_id);
+CREATE INDEX idx_class_sections_class_id ON class_sections(class_id) WHERE deleted_at IS NULL;
 
--- Index for subjects table to support subject_id join (note: the table name in query appears to have a typo - "sujects" vs "subjects")
-CREATE INDEX idx_subjects_subject_id ON sujects(suject_id); -- adjust table name if it's actually "subjects"
 
+
+
+CREATE INDEX idx_attendance_student_number_active
+    ON academic_schema.student_attendance(student_number, lesson_id)
+    WHERE deleted_at IS NULL;
+
+CREATE INDEX idx_attendance_section_term_active
+    ON academic_schema.student_attendance(lesson_id, student_number)
+    WHERE deleted_at IS NULL;
+
+CREATE INDEX idx_lessons_section_term_active
+    ON academic_schema.lessons(section_id, term_id)
+    WHERE deleted_at IS NULL;

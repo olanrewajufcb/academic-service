@@ -7,8 +7,8 @@ import java.time.LocalDate;
 public record AcademicTermResponse(
         Long termId,
         LocalDate startDate,
-        LocalDate endDate
-) {
+        LocalDate endDate)
+{
     public static AcademicTermResponse fromEntity(AcademicTerm academicTerm) {
         return new AcademicTermResponse(
                 academicTerm.getTermId(),

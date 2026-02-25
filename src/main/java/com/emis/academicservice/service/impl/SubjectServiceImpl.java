@@ -1,4 +1,4 @@
-package com.emis.academicservice.service.imp;
+package com.emis.academicservice.service.impl;
 
 import com.emis.academicservice.cache.SchoolCacheService;
 import com.emis.academicservice.config.ServiceConfigurationProperties;
@@ -9,7 +9,6 @@ import com.emis.academicservice.exception.*;
 import com.emis.academicservice.mapper.SubjectMapper;
 import com.emis.academicservice.repository.SubjectRepository;
 import com.emis.academicservice.service.SubjectService;
-import com.emis.academicservice.service.client.SchoolClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -52,7 +51,11 @@ public class SubjectServiceImpl implements SubjectService {
                             .map(subjectMapper::toResponse)
                             .onErrorMap(DataIntegrityViolationException.class, ex -> {
                                 log.error("[{}] Error registering subject: ", requestId, ex);
-                              return  new AlreadyExistsException(
+                                if (ex.getMessage().contains("violates not-null constraint")) {
+                                    return new ValidationException(
+                                        "Required parameter missing ::: ");
+                                }
+                              return new AlreadyExistsException(
                                         String.format("Subject '%s' already exists for school '%s'",
                                                 request.getSubjectCode(), request.getSchoolCode())
                                 );

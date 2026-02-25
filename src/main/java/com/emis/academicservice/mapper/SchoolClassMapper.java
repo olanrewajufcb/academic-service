@@ -26,9 +26,37 @@ public interface SchoolClassMapper {
     SchoolClassResponse toResponse(SchoolClass schoolClass);
 
 
+    @Mapping(target = "studentId", source = "studentId")
+    @Mapping(target = "studentNumber", source = "studentNumber")
+    @Mapping(target = "studentName", source = "studentName")
+
+    @Mapping(target = "schoolId", source = "schoolId")
+    @Mapping(target = "schoolName", source = "schoolName")
+
     @Mapping(target = "type", source = "schoolCode", qualifiedByName = "toSchoolType")
     @Mapping(target = "level", source = "gradeLevel", qualifiedByName = "toSchoolLevel")
+
+    @Mapping(target = "classId", source = "classId")
+    @Mapping(target = "className", source = "className")
+    @Mapping(target = "gradeLevel", source = "gradeLevel")
+
+    @Mapping(target = "formTeacherId", source = "formTeacherId")
+    @Mapping(target = "arm", source = "arm")
+    @Mapping(target = "academicYear", source = "academicYear")
+
     StudentInClassResponse responseFromRows(StudentsInClassRow row);
+
+//    @Named("toSchoolType")
+//    default SchoolType toSchoolType(String schoolCode) {
+//        if (schoolCode == null) return null;
+//        return SchoolType.valueOf(schoolCode.toUpperCase());
+//    }
+//
+//    @Named("toSchoolLevel")
+//    default SchoolLevel toSchoolLevel(String gradeLevel) {
+//        if (gradeLevel == null) return null;
+//        return SchoolLevel.valueOf(gradeLevel.toUpperCase());
+//    }
 
     @Named("toSchoolType")
     default SchoolType toSchoolType(String schoolCode) {

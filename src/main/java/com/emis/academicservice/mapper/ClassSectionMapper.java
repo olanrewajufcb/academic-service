@@ -16,7 +16,6 @@ public interface ClassSectionMapper {
     @Mapping(target = "updatedAt", expression = "java(java.time.LocalDateTime.now())")
     ClassSection toEntity(CreateClassSectionRequest request);
 
-    @Mapping(target = "subject", ignore = true)
     @Mapping(target = "teacherName", ignore = true)
     ClassSectionResponse toResponse(ClassSection classSection);
 }

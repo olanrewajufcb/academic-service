@@ -15,13 +15,12 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @Table(name = "student_attendance", schema = "academic_schema")
 public class StudentAttendance {
-    @Id
-    private Long attendanceId;
-    private Long sectionId;
+  @Id private Long attendanceId;
+    private Long lessonId;
     private Long studentId;
     private String studentNumber;
+    private String studentName;
     private String schoolCode;
-    private LocalDate attendanceDate;
     private String attendanceStatus;
     private String notes;
     private LocalDate recordedAt;
