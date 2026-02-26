@@ -94,14 +94,17 @@ public class ClassManagementServiceImpl implements ClassManagementService {
     }
 
     private Mono<Void> validatedFormTeacher(Long teacherId) {
-        return hrClientService.validateTeacherExists(teacherId)
-                .flatMap(teacherExists -> {
-                    if (Boolean.FALSE.equals(teacherExists)) {
-                        return Mono.error(new TeacherNotFoundException(
-                                "Teacher with ID " + teacherId + " not found or not assigned to school " ));
-                    }
-                    return Mono.empty();
-                });
+    return hrClientService
+        .validateTeacherExists(teacherId)
+        .flatMap(
+            teacherExists -> {
+              if (Boolean.FALSE.equals(teacherExists)) {
+                return Mono.error(
+                    new ResourceNotFoundException(
+                        "Teacher with ID " + teacherId + " not found or not assigned to school "));
+              }
+              return Mono.empty();
+            });
     }
 
     @Override

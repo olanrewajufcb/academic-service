@@ -18,7 +18,6 @@ import com.emis.academicservice.service.ClassSectionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
@@ -52,7 +51,7 @@ public class ClassSectionServiceImpl implements ClassSectionService {
 
     return schoolClassRepository
         .findClassBySchoolCodeAndId(schoolCode, request.getClassId())
-        .switchIfEmpty(Mono.error(new ClassNotFoundException("Class not found")))
+        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Class not found")))
         .flatMap(
             schoolClassProjection -> {
               section.setSchoolId(schoolClassProjection.getSchoolId());
@@ -71,7 +70,8 @@ public class ClassSectionServiceImpl implements ClassSectionService {
         .onErrorMap(
             ex -> {
               if (ex instanceof DuplicateKeyException) {
-                return new AlreadyExistsException("Class section already exists");
+                return new ResourceNotFoundException(
+                    "Class section already exists");
               } else if (ex instanceof DataIntegrityViolationException) {
                 if (ex.getMessage().contains("violates foreign key constraint")) {
                   return new ValidationException("Wrong id supplied or missing id");
@@ -100,7 +100,7 @@ public class ClassSectionServiceImpl implements ClassSectionService {
                 .orElse("sectionId");
     return schoolClassRepository
         .findClassBySchoolCodeAndId(schoolCode, classId)
-        .switchIfEmpty(Mono.error(new ClassNotFoundException("Class not found")))
+        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Class not found")))
         .flatMap(
             schoolClassProjection ->
                 Mono.zip(
@@ -145,45 +145,56 @@ public class ClassSectionServiceImpl implements ClassSectionService {
     @Override
     public Mono<ClassSectionResponse> getClassSectionsByClassIdAndStaffCode(
             Long classId, String schoolCode, String staffCode, String requestId) {
-        return schoolClassRepository.findClassBySchoolCodeAndId(schoolCode, classId)
-                .switchIfEmpty(Mono.error(new ClassNotFoundException("Class not found")))
-                .flatMap(classProjection -> classSectionRepository
-                        .findByClassIdAndSectionIdAndTeacherCode(classProjection.getClassId(), staffCode))
-                .map(classSection -> ClassSectionResponse.builder()
-                        .sectionId(classSection.getSectionId())
-                        .teacherId(classSection.getTeacherId())
-                        .room(classSection.getRoom())
-                        .schedule(classSection.getSchedule())
-                        .maxCapacity(classSection.getMaxCapacity())
-                        .currentEnrollment(classSection.getCurrentEnrollment())
-                        .build());
+    return schoolClassRepository
+        .findClassBySchoolCodeAndId(schoolCode, classId)
+        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Class not found")))
+        .flatMap(
+            classProjection ->
+                classSectionRepository.findByClassIdAndSectionIdAndTeacherCode(
+                    classProjection.getClassId(), staffCode))
+        .map(
+            classSection ->
+                ClassSectionResponse.builder()
+                    .sectionId(classSection.getSectionId())
+                    .teacherId(classSection.getTeacherId())
+                    .room(classSection.getRoom())
+                    .schedule(classSection.getSchedule())
+                    .maxCapacity(classSection.getMaxCapacity())
+                    .currentEnrollment(classSection.getCurrentEnrollment())
+                    .build());
     }
 
     @Override
     public Mono<ClassSectionResponse> updateClassSection(Long classId, Long sectionId, String schoolCode,
                                                          StaffUpdateRequest request, String requestId) {
 
-        return schoolClassRepository.findClassBySchoolCodeAndId(schoolCode, classId)
-                .switchIfEmpty(Mono.error(new ClassNotFoundException("Class not found")))
-                .flatMap(classProjection -> classSectionRepository
-                        .findById(sectionId)
-                        .switchIfEmpty(Mono.error(new ClassSectionNotFoundException("Class section not found")))
-                        .flatMap(classSection -> {
-                            classSection.setTeacherId(request.staffId());
-                            classSection.setStaffCode(request.staffCode());
-                            classSection.setTeacherName(request.name());
-                            return classSectionRepository.save(classSection);
+    return schoolClassRepository
+        .findClassBySchoolCodeAndId(schoolCode, classId)
+        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Class not found")))
+        .flatMap(
+            classProjection ->
+                classSectionRepository
+                    .findById(sectionId)
+                    .switchIfEmpty(
+                        Mono.error(new ResourceNotFoundException("Class section not found")))
+                    .flatMap(
+                        classSection -> {
+                          classSection.setTeacherId(request.staffId());
+                          classSection.setStaffCode(request.staffCode());
+                          classSection.setTeacherName(request.name());
+                          return classSectionRepository.save(classSection);
                         })
-                        .as(transactionalOperator::transactional)
-                )
-                .map(classSection -> ClassSectionResponse.builder()
-                        .sectionId(classSection.getSectionId())
-                        .teacherId(classSection.getTeacherId())
-                        .room(classSection.getRoom())
-                        .schedule(classSection.getSchedule())
-                        .maxCapacity(classSection.getMaxCapacity())
-                        .currentEnrollment(classSection.getCurrentEnrollment())
-                        .build());
+                    .as(transactionalOperator::transactional))
+        .map(
+            classSection ->
+                ClassSectionResponse.builder()
+                    .sectionId(classSection.getSectionId())
+                    .teacherId(classSection.getTeacherId())
+                    .room(classSection.getRoom())
+                    .schedule(classSection.getSchedule())
+                    .maxCapacity(classSection.getMaxCapacity())
+                    .currentEnrollment(classSection.getCurrentEnrollment())
+                    .build());
     }
 
 

@@ -84,7 +84,7 @@ public class ClassSectionController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
-    @Operation(summary = "Get all class sections for a given class with a staff code")
+    @Operation(summary = "Get all class sections/subjects for a given class taught by a staff")
     @GetMapping("/schools/{schoolCode}/classes/{classId}")
     @ResponseStatus(HttpStatus.OK)
     public Mono<ClassSectionResponse> getAllClassSectionsByClassIdAndStaffCode(
@@ -127,7 +127,7 @@ public class ClassSectionController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
-    @Operation(summary = "Get all class sections for a given class with a staff code")
+    @Operation(summary = "Get all subjects taught by a staff in a school")
     @GetMapping("/schools/{schoolCode}/staff/{staffCode}")
     @ResponseStatus(HttpStatus.OK)
     public Mono<Page<ClassSectionWithSubjectResponse>> getAllClassSectionsByClassIdAndStaffCode(

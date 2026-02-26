@@ -38,29 +38,31 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     public Mono<SubjectResponse> registerSubject(RegisterSubjectRequest request, String requestId) {
-        return schoolCacheService
-                .getSchoolIdByCode(request.getSchoolCode())
-                .flatMap(schoolId -> {
+    return schoolCacheService
+        .getSchoolIdByCode(request.getSchoolCode())
+        .flatMap(
+            schoolId -> {
+              Subject subject = subjectMapper.toEntity(request);
+              subject.setSchoolId(schoolId);
 
-                    Subject subject = subjectMapper.toEntity(request);
-                    subject.setSchoolId(schoolId);
-
-                    log.info("[{}] Registering subject::::: {}", requestId, subject);
-                    return subjectRepository.save(subject)
-                            .as(transactionalOperator::transactional)
-                            .map(subjectMapper::toResponse)
-                            .onErrorMap(DataIntegrityViolationException.class, ex -> {
-                                log.error("[{}] Error registering subject: ", requestId, ex);
-                                if (ex.getMessage().contains("violates not-null constraint")) {
-                                    return new ValidationException(
-                                        "Required parameter missing ::: ");
-                                }
-                              return new AlreadyExistsException(
-                                        String.format("Subject '%s' already exists for school '%s'",
-                                                request.getSubjectCode(), request.getSchoolCode())
-                                );
-                            });
-                });
+              log.info("[{}] Registering subject::::: {}", requestId, subject);
+              return subjectRepository
+                  .save(subject)
+                  .as(transactionalOperator::transactional)
+                  .map(subjectMapper::toResponse)
+                  .onErrorMap(
+                      DataIntegrityViolationException.class,
+                      ex -> {
+                        log.error("[{}] Error registering subject: ", requestId, ex);
+                        if (ex.getMessage().contains("violates not-null constraint")) {
+                          return new ValidationException("Required parameter missing ::: ");
+                        }
+                        return new ResourceNotFoundException(
+                            String.format(
+                                "Subject '%s' already exists for school '%s'",
+                                request.getSubjectCode(), request.getSchoolCode()));
+                      });
+            });
     }
 
 

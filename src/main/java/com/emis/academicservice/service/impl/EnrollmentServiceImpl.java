@@ -35,42 +35,41 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     return schoolClassRepository
         .findClassBySchoolCodeAndId(request.getSchoolCode(), request.getClassId())
         .switchIfEmpty(
-            Mono.error(
-                new SchoolClassNotFoundException("Class not found: " + request.getClassId())))
+            Mono.error(new ResourceNotFoundException("Class not found: " + request.getClassId())))
         .flatMap(
             classProjection ->
                 studentEnrollmentCache
-                    .getStudentEnrollmentFromCache(request.getSchoolCode(), request.getStudentNumber(),
-                            classProjection.getAcademicYear())
+                    .getStudentEnrollmentFromCache(
+                        request.getSchoolCode(),
+                        request.getStudentNumber(),
+                        classProjection.getAcademicYear())
                     .flatMap(
                         student -> {
-                            log.info(
-                                "Student found: id={}, name={}, number={}",
-                                student.studentId(),
-                                student.studentName(),
-                                student.studentNumber());
-                          return  enrollmentRepository
-                                    .existsByStudentIdAndClassId(
-                                            student.studentId(), request.getClassId())
-                                    .flatMap(
-                                            exists ->
-                                                    Boolean.TRUE.equals(exists)
-                                                            ? Mono.error(
-                                                            new AlreadyExistsException(
-                                                                    "Student "
-                                                                            + student.studentNumber()
-                                                                            + " already enrolled in class "
-                                                                            + request.getClassId()))
-                                                            : Mono.just(Tuples.of(student, classProjection)));
-
+                          log.info(
+                              "Student found: id={}, name={}, number={}",
+                              student.studentId(),
+                              student.studentName(),
+                              student.studentNumber());
+                          return enrollmentRepository
+                              .existsByStudentIdAndClassId(
+                                  student.studentId(), request.getClassId())
+                              .flatMap(
+                                  exists ->
+                                      Boolean.TRUE.equals(exists)
+                                          ? Mono.error(
+                                              new ResourceNotFoundException(
+                                                  "Student "
+                                                      + student.studentNumber()
+                                                      + " already enrolled in class "
+                                                      + request.getClassId()))
+                                          : Mono.just(Tuples.of(student, classProjection)));
                         }))
-
         .flatMap(
             tuple -> {
               StudentEnrollmentResponse student = tuple.getT1();
-              SchoolClassProjection  classProjection = tuple.getT2();
+              SchoolClassProjection classProjection = tuple.getT2();
 
-                Enrollment enrollment = mapper.toEntity(request);
+              Enrollment enrollment = mapper.toEntity(request);
 
               enrollment.setStudentId(student.studentId());
               enrollment.setStudentNumber(student.studentNumber());
@@ -84,7 +83,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                       savedEnrollment ->
                           schoolClassRepository
                               .incrementStudentCount(request.getClassId())
-                              .thenReturn(Tuples.of(savedEnrollment, classProjection.getClassName())))
+                              .thenReturn(
+                                  Tuples.of(savedEnrollment, classProjection.getClassName())))
                   .as(transactionalOperator::transactional);
             })
         .doOnNext(
@@ -96,15 +96,17 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                     saved.getT1().getEnrollmentDate(),
                     saved.getT1().getEnrollmentStatus(),
                     idempotencyKey))
-        .map(savedEntity ->
-                EnrollmentResponse.from(savedEntity.getT1(), request.getSchoolCode(),  savedEntity.getT2()))
+        .map(
+            savedEntity ->
+                EnrollmentResponse.from(
+                    savedEntity.getT1(), request.getSchoolCode(), savedEntity.getT2()))
         .onErrorMap(
             DataIntegrityViolationException.class,
             ex -> {
               if (ex.getMessage().contains("chk_class_capacity")) {
                 return new ClassCapacityExceededException("Class capacity exceeded", ex);
               } else if (ex.getMessage().contains("violates unique constraint")) {
-                return new AlreadyExistsException("Duplicate enrollment");
+                return new ResourceNotFoundException("Duplicate enrollment");
               }
               return new EnrollmentFailureException("DB error::::", ex);
             });
@@ -113,46 +115,44 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     @Override
     public Mono<EnrollmentResponse> getStudentPlacement(Long classId,
                                     String studentNumber, String schoolCode, String requestId) {
-        return schoolClassRepository
-                .findClassBySchoolCodeAndId(schoolCode, classId)
-                .switchIfEmpty(
+    return schoolClassRepository
+        .findClassBySchoolCodeAndId(schoolCode, classId)
+        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Class not found: " + classId)))
+        .flatMap(
+            classProjection ->
+                enrollmentRepository
+                    .findByStudentNumberAndClassId(studentNumber, classProjection.getClassId())
+                    .switchIfEmpty(
                         Mono.error(
-                                new SchoolClassNotFoundException("Class not found: " + classId)))
-                .flatMap(
-                        classProjection -> enrollmentRepository
-                                .findByStudentNumberAndClassId(studentNumber, classProjection.getClassId())
-                        .switchIfEmpty(
-                                Mono.error(
-                                        new ResourceNotFoundException("Student not found: " + studentNumber)))
-                        .map(enrollment ->
-                                EnrollmentResponse.from(enrollment, schoolCode, classProjection.getClassName()))
-                );
+                            new ResourceNotFoundException("Student not found: " + studentNumber)))
+                    .map(
+                        enrollment ->
+                            EnrollmentResponse.from(
+                                enrollment, schoolCode, classProjection.getClassName())));
     }
 
     @Override
     public Mono<EnrollmentResponse> removeStudentFromClass(Long classId, String studentNumber, String schoolCode) {
-        return schoolClassRepository
-                .findClassBySchoolCodeAndId(schoolCode, classId)
-                .switchIfEmpty(
+    return schoolClassRepository
+        .findClassBySchoolCodeAndId(schoolCode, classId)
+        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Class not found: " + classId)))
+        .flatMap(
+            classProjection ->
+                enrollmentRepository
+                    .findByStudentNumberAndClassId(studentNumber, classProjection.getClassId())
+                    .switchIfEmpty(
                         Mono.error(
-                                new SchoolClassNotFoundException("Class not found: " + classId)))
-                .flatMap(
-                        classProjection -> enrollmentRepository
-                                .findByStudentNumberAndClassId(studentNumber, classProjection.getClassId())
-                        .switchIfEmpty(
-                                Mono.error(
-                                        new ResourceNotFoundException("Student not found: " + studentNumber)))
-                )
-                .flatMap( enrollment ->
-                        enrollmentRepository.softDeleteByStudentNumberAndClassId(studentNumber, classId)
-                )
-                .flatMap(rows -> {
-                    if (rows == 0) {
-                        return Mono.error(
-                                new ResourceNotFoundException(
-                                        "Student not enrolled in class: " + classId));
-                    }
-                    return Mono.empty();
-                });
+                            new ResourceNotFoundException("Student not found: " + studentNumber))))
+        .flatMap(
+            enrollment ->
+                enrollmentRepository.softDeleteByStudentNumberAndClassId(studentNumber, classId))
+        .flatMap(
+            rows -> {
+              if (rows == 0) {
+                return Mono.error(
+                    new ResourceNotFoundException("Student not enrolled in class: " + classId));
+              }
+              return Mono.empty();
+            });
     }
 }

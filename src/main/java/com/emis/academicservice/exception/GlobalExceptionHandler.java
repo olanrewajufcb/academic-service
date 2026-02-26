@@ -106,27 +106,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
-    @ExceptionHandler(AlreadyExistsException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleSchoolAlreadyExists(AlreadyExistsException ex) {
-        log.error("School already exists: {}", ex.getMessage());
-
-        Map<String, Object> response = new HashMap<>();
-        response.put(TIMESTAMP, LocalDateTime.now());
-        response.put(STATUS, HttpStatus.BAD_REQUEST.value());
-        response.put(ERROR, BAD_REQUEST);
-        response.put(MESSAGE, ex.getMessage());
-
-        if (ex.getFieldName() != null) {
-            response.put(FIELD, ex.getFieldName());
-        }
-        if (ex.getRejectedValue() != null) {
-            response.put("rejectedValue", ex.getRejectedValue());
-        }
-
-        return response;
-    }
-
     @ExceptionHandler(ArgumentIsNullException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, Object> handleArgumentIsNull(ArgumentIsNullException ex) {
@@ -273,7 +252,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, Object> handleResourceNotFound(ResourceNotFoundException ex) {
-        log.error("School service is down: ", ex);
+        log.error("Resource not found: ", ex);
 
         Map<String, Object> response = new HashMap<>();
         response.put(TIMESTAMP, LocalDateTime.now());
@@ -287,14 +266,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceAlreadyExistsException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, Object> handleResourceAlreadyExistsException(ResourceAlreadyExistsException ex) {
-        log.error("Unexpected error: ", ex);
+        log.error("Resource already exists: {}", ex.getMessage());
 
         Map<String, Object> response = new HashMap<>();
         response.put(TIMESTAMP, LocalDateTime.now());
         response.put(STATUS, HttpStatus.BAD_REQUEST.value());
-        response.put(ERROR, "Invalid Request");
-        response.put(MESSAGE, "Bad Request");
-        response.put("details", ex.getMessage());
+        response.put(ERROR, BAD_REQUEST);
+        response.put(MESSAGE, ex.getMessage());
+
+        if (ex.getFieldName() != null) {
+            response.put(FIELD, ex.getFieldName());
+        }
+        if (ex.getRejectedValue() != null) {
+            response.put("rejectedValue", ex.getRejectedValue());
+        }
 
         return response;
     }

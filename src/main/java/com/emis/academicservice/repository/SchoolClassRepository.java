@@ -93,11 +93,16 @@ public interface SchoolClassRepository extends R2dbcRepository<SchoolClass, Long
 
     @Query("""
     SELECT 
-        sc.class_id, sc.school_id, sc.school_code, sc.academic_year,
-        sc.class_name, sc.grade_level
+        sc.class_id, 
+        sc.school_id, 
+        sc.school_code, 
+        sc.academic_year,
+        sc.class_name, 
+        sc.grade_level
     FROM school_classes sc
     WHERE sc.school_code = $1 
-      AND sc.class_id = $2 AND sc.is_deleted = FALSE
+      AND sc.class_id = $2 
+      AND sc.is_deleted = FALSE
     """)
     Mono<SchoolClassProjection> findClassBySchoolCodeAndId(
             String schoolCode, Long classId);

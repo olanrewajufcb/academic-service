@@ -64,7 +64,7 @@ public interface ClassSectionRepository extends R2dbcRepository<ClassSection, Lo
     @Query("""
         SELECT cs.* FROM class_sections cs
         WHERE cs.class_id = $1 
-        AND cs.staff_code = $3 AND cs.is_deleted = FALSE
+        AND cs.staff_code = $2 AND cs.is_deleted = FALSE
     """)
     Mono<ClassSection> findByClassIdAndSectionIdAndTeacherCode(Long classId, String staffCode);
 

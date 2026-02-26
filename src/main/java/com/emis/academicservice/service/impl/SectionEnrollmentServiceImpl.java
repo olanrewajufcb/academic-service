@@ -55,38 +55,37 @@ public class SectionEnrollmentServiceImpl implements SectionEnrollmentService {
                         + "'")))
         .flatMap(
             validation -> {
-                log.info(
-                    "[{}] Validated section id {} and academic year for school '{}'",
-                    requestId,
-                    validation.getSectionId(),
-                    validation.getAcademicYear());
-                return studentEnrollmentCache
-                        .getStudentEnrollmentFromCache(
-                                request.getSchoolCode(),
-                                request.getStudentNumber(),
-                                validation.getAcademicYear())
-                        .timeout(Duration.ofSeconds(properties.getTimeout()))
-                        .flatMap(
-                                student -> {
-                                    if (!request.getSchoolCode().equals(student.schoolCode())) {
-                                        return Mono.error(
-                                                new InvalidEnrollmentException(
-                                                        String.format(
-                                                                "Student %s belongs to school '%s', not '%s'",
-                                                                request.getStudentNumber(),
-                                                                student.schoolCode(),
-                                                                request.getSchoolCode())));
-                                    }
+              log.info(
+                  "[{}] Validated section id {} and academic year for school '{}'",
+                  requestId,
+                  validation.getSectionId(),
+                  validation.getAcademicYear());
+              return studentEnrollmentCache
+                  .getStudentEnrollmentFromCache(
+                      request.getSchoolCode(),
+                      request.getStudentNumber(),
+                      validation.getAcademicYear())
+                  .timeout(Duration.ofSeconds(properties.getTimeout()))
+                  .flatMap(
+                      student -> {
+                        if (!request.getSchoolCode().equals(student.schoolCode())) {
+                          return Mono.error(
+                              new InvalidEnrollmentException(
+                                  String.format(
+                                      "Student %s belongs to school '%s', not '%s'",
+                                      request.getStudentNumber(),
+                                      student.schoolCode(),
+                                      request.getSchoolCode())));
+                        }
 
-                                    SectionEnrollment enrollment = mapper.toEntity(request);
-                                    enrollment.setSectionId(sectionId);
-                                    enrollment.setStudentId(student.studentId());
-                                    enrollment.setStudentNumber(student.studentNumber());
-                                    enrollment.setEnrollmentDate(LocalDate.now());
-                                    return sectionEnrollmentRepository.save(enrollment);
-                                });
+                        SectionEnrollment enrollment = mapper.toEntity(request);
+                        enrollment.setSectionId(sectionId);
+                        enrollment.setStudentId(student.studentId());
+                        enrollment.setStudentNumber(student.studentNumber());
+                        enrollment.setEnrollmentDate(LocalDate.now());
+                        return sectionEnrollmentRepository.save(enrollment);
+                      });
             })
-
         .as(transactionalOperator::transactional)
         .doOnSuccess(
             saved ->
@@ -102,7 +101,8 @@ public class SectionEnrollmentServiceImpl implements SectionEnrollmentService {
             DataIntegrityViolationException.class,
             ex -> {
               if (ex.getMessage().contains("section_enrollment_section_id_student_id_key")) {
-                return new AlreadyExistsException("Duplicate section enrollment");
+                return new ResourceNotFoundException(
+                    "Duplicate section enrollment");
               }
               return new EnrollmentFailureException("DB error", ex);
             });

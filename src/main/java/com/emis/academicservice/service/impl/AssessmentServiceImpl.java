@@ -41,29 +41,38 @@ public class AssessmentServiceImpl implements AssessmentService {
     public Mono<AssessmentResponse> createAssessment(CreateAssessmentRequest request,
                                                     String schoolCode, String requestId) {
 
-        return classSectionRepository.findBySectionIdAndSchoolCode(request.getSectionId(), schoolCode)
-                .switchIfEmpty(Mono.error(new ClassSectionNotFoundException(
-                        "Class section not found")))
-                .flatMap(classSection -> {
-                    Assessment assessment = mapper.toEntity(request);
-                    assessment.setSchoolId(classSection.getSchoolId());
-                    assessment.setTermId(classSection.getTermId());
-                    assessment.setSchoolCode(classSection.getSchoolCode());
-                    return assessmentRepository.save(assessment);
-               })
-                .as(transactionalOperator::transactional)
-                .doOnNext(assessment -> log.info("[{}] Assessment created: id={}, sectionId={}, termId={}",
-                                requestId, assessment.getAssessmentId(), assessment.getSectionId(), assessment.getTermId()))
-                .map(mapper::toResponse)
-                .onErrorMap(DataIntegrityViolationException.class, ex -> {
-                    if (ex.getMessage().contains("uk_section_term_name")) {
-                        return new DuplicateAssessmentException(
-                                "Assessment '" + request.getName() + "' already exists", ex);
-                    } else if (ex.getMessage().contains("assessments_max_score_check")) {
-                        return new InvalidAssessmentException("maxScore must be > 0", ex);
-                    }
-                    return new AssessmentCreationException("Failed to create assessment", ex);
-                });
+    return classSectionRepository
+        .findBySectionIdAndSchoolCode(request.getSectionId(), schoolCode)
+        .switchIfEmpty(Mono.error(new ResourceNotFoundException("Class section not found")))
+        .flatMap(
+            classSection -> {
+              Assessment assessment = mapper.toEntity(request);
+              assessment.setSchoolId(classSection.getSchoolId());
+              assessment.setTermId(classSection.getTermId());
+              assessment.setSchoolCode(classSection.getSchoolCode());
+              return assessmentRepository.save(assessment);
+            })
+        .as(transactionalOperator::transactional)
+        .doOnNext(
+            assessment ->
+                log.info(
+                    "[{}] Assessment created: id={}, sectionId={}, termId={}",
+                    requestId,
+                    assessment.getAssessmentId(),
+                    assessment.getSectionId(),
+                    assessment.getTermId()))
+        .map(mapper::toResponse)
+        .onErrorMap(
+            DataIntegrityViolationException.class,
+            ex -> {
+              if (ex.getMessage().contains("uk_section_term_name")) {
+                return new DuplicateAssessmentException(
+                    "Assessment '" + request.getName() + "' already exists", ex);
+              } else if (ex.getMessage().contains("assessments_max_score_check")) {
+                return new InvalidAssessmentException("maxScore must be > 0", ex);
+              }
+              return new AssessmentCreationException("Failed to create assessment", ex);
+            });
     }
 
     @Override
@@ -80,7 +89,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                     .findBySectionIdAndSchoolId(sectionId, schoolId)
                     .switchIfEmpty(
                         Mono.error(
-                            new ClassSectionNotFoundException(
+                            new ResourceNotFoundException(
                                 String.format(
                                     "Section %d not found in school %s", sectionId, schoolCode))))
                     .flatMap(
