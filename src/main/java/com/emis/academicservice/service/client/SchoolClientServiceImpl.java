@@ -6,8 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.emis.academicservice.config.ServiceConfigurationProperties;
 import com.emis.academicservice.dto.response.SchoolDetailsResponse;
 import com.emis.academicservice.exception.SchoolNotFoundException;
-import com.emis.academicservice.exception.SchoolServiceException;
-import com.emis.academicservice.exception.SchoolServiceUnavailableException;
+import com.emis.academicservice.exception.ServiceException;
+import com.emis.academicservice.exception.ServiceUnavailableException;
 import com.emis.academicservice.utils.ClientHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,11 +48,11 @@ public class SchoolClientServiceImpl implements SchoolClientService {
                             "School with code : " + schoolCode + " does not exist");
                 } else if (err instanceof WebClientResponseException.ServiceUnavailable ex) {
                     log.error("School service unavailable: {}", schoolCode, ex);
-                    return new SchoolServiceUnavailableException(
+                    return new ServiceUnavailableException(
                             "School service error: " + ex.getStatusCode(), ex.getResponseBodyAsString());
                 }
                 log.error("School service error:::: {}", schoolCode, err);
-                return new SchoolServiceException("School service error: ");
+                return new ServiceException("School service error: ", err);
             });
 
     }
@@ -76,10 +76,10 @@ public class SchoolClientServiceImpl implements SchoolClientService {
                 return new SchoolNotFoundException(
                     "School not found: " + schoolId + ex.getMessage());
               } else if (err instanceof WebClientResponseException.ServiceUnavailable ex) {
-                return new SchoolServiceUnavailableException("School not found: " + schoolId, ex);
+                return new ServiceUnavailableException("School not found: " + schoolId, ex);
               }
               log.error("School service error:::: {}", schoolId, err);
-              return new SchoolServiceException("School service error: ");
+              return new ServiceException("School service error: ", err);
             });
     }
 
@@ -105,10 +105,10 @@ public class SchoolClientServiceImpl implements SchoolClientService {
                         return new SchoolNotFoundException(
                                 "School not found with the given school code: " + schoolCode);
                     } else if (err instanceof WebClientResponseException.ServiceUnavailable ex) {
-                        return new SchoolServiceUnavailableException("School not found: " + schoolCode, ex);
+                        return new ServiceUnavailableException("School not found: " + schoolCode, ex);
                     }
                     log.error("School service error:::: {}", schoolCode, err);
-                    return new SchoolServiceException("School service error ");
+                    return new ServiceException("School service error ",  err);
                 });
     }
 }

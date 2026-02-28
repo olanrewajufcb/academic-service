@@ -16,6 +16,7 @@ public class SchoolClass {
     @Id
     private Long classId;
     private Long schoolId;
+    private Long facultyId;
     private String schoolCode;
     private String schoolName;
     private Long formTeacherId;

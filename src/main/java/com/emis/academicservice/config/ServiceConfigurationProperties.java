@@ -19,7 +19,7 @@ public class ServiceConfigurationProperties {
     private SchoolServiceProperties schoolConfiguration;
 
     @NestedConfigurationProperty
-    private HrServiceProperties hrConfiguration;
+    private FacilityServiceProperties facilityConfiguration;
 
     @NestedConfigurationProperty
     private StudentServiceProperties studentConfiguration;
@@ -37,9 +37,9 @@ public class ServiceConfigurationProperties {
 
     @Getter
     @Setter
-    public static class HrServiceProperties{
+    public static class FacilityServiceProperties{
         private String baseUrl;
-        private String validateTeacherExistsUrl;
+        private String validateFacilityExistsUrl;
     }
 
 

@@ -88,13 +88,17 @@ logging:
 emis:
   services:
     school-configuration:
-      base-url: ${EMIS_SERVICE_URL:http://localhost:8082}
+      base-url: ${SCHOOL_SERVICE_URL:http://localhost:8082}
       get-school-details-url: ${emis.services.school-configuration.base-url}/api/v1/schools/{schoolCode}
       validate-school-exists-url: ${emis.services.school-configuration.base-url}/api/v1/schools/validate/{schoolCode}
 
     student-configuration:
-      base-url: ${EMIS_SERVICE_URL:http://localhost:8083}
+      base-url: ${STUDENT_SERVICE_URL:http://localhost:8083}
       get-student-details-url: ${emis.services.student-configuration.base-url}/api/v1/students
       get-active-enrollment-url: ${emis.services.student-configuration.base-url}/api/v1/students/{studentNumber}/enrollments/current
+
+    facility-configuration:
+      base-url: ${FACILITY_SERVICE_URL:http://localhost:8085}
+      validate-facility-exists-url: ${emis.services.facility-configuration.base-url}/api/v1/facilities/validate/{facilityId}
 
     timeout: 5

@@ -11,7 +11,7 @@ import com.emis.academicservice.mapper.SchoolClassMapper;
 import com.emis.academicservice.repository.SchoolClassRepository;
 import com.emis.academicservice.repository.StudentsInClassRow;
 import com.emis.academicservice.service.ClassManagementService;
-import com.emis.academicservice.service.client.HrClientService;
+import com.emis.academicservice.service.client.FacilityClientService;
 import com.emis.academicservice.service.client.SchoolClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +38,7 @@ public class ClassManagementServiceImpl implements ClassManagementService {
     private  final SchoolClassMapper schoolClassMapper;
     private final TransactionalOperator transactionalOperator;
     private final SchoolClientService schoolClientService;
-    private final HrClientService hrClientService;
+    private final FacilityClientService facilityClientService;
     private final SchoolCacheService schoolCacheService;
     private final ServiceConfigurationProperties properties;
 
@@ -54,7 +54,7 @@ public class ClassManagementServiceImpl implements ClassManagementService {
                 return Mono.error(
                     new SchoolNotFoundException("School not found: " + request.getSchoolCode()));
               }
-              return Mono.just(true);
+              return validateFacilityExists(request.getFacultyId());
             })
         .then(
             Mono.defer(
@@ -83,25 +83,25 @@ public class ClassManagementServiceImpl implements ClassManagementService {
                 log.error("School not found error occurred | requestId: {}", requestId);
                 return new SchoolNotFoundException(ex.getMessage());
               }
-              else if (ex instanceof SchoolServiceException) {
+              else if (ex instanceof ServiceException) {
                 log.error("School not found error occurred | requestId: {}", requestId, ex);
-                return new SchoolServiceException(
-                    ex.getMessage() + request.getSchoolCode());
+                return new ServiceException(
+                    ex.getMessage() + request.getSchoolCode(), ex);
               }
               return new SchoolClassCreationException(
                   "Failed to create school class " + requestId, ex);
             });
     }
 
-    private Mono<Void> validatedFormTeacher(Long teacherId) {
-    return hrClientService
-        .validateTeacherExists(teacherId)
+    private Mono<Void> validateFacilityExists(Long facilityId) {
+    return facilityClientService
+        .validateFacility(facilityId)
         .flatMap(
             teacherExists -> {
               if (Boolean.FALSE.equals(teacherExists)) {
                 return Mono.error(
                     new ResourceNotFoundException(
-                        "Teacher with ID " + teacherId + " not found or not assigned to school "));
+                        "Facility with ID " + facilityId + " not found or not exist for this school"));
               }
               return Mono.empty();
             });
