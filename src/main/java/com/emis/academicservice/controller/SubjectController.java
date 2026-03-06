@@ -5,6 +5,8 @@ import com.emis.academicservice.domain.db.Subject;
 import com.emis.academicservice.dto.request.RegisterSubjectRequest;
 import com.emis.academicservice.dto.response.SubjectResponse;
 import com.emis.academicservice.exception.BadRequestException;
+import com.emis.academicservice.security.CanCreateResource;
+import com.emis.academicservice.security.CanViewResource;
 import com.emis.academicservice.service.SubjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -30,7 +32,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-@RequestMapping("api/v1/academic/subjects")
+@RequestMapping("api/v1/academic")
 public class SubjectController {
 
     private final SubjectService service;
@@ -39,8 +41,9 @@ public class SubjectController {
                     .map(Field::getName)
                     .collect(Collectors.toSet());
 
+    @CanCreateResource
     @Operation(summary = "Register a subject")
-    @PostMapping
+    @PostMapping("/subjects")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<SubjectResponse> registerSubject(@Valid @RequestBody RegisterSubjectRequest request) {
         String requestId = UUID.randomUUID().toString();
@@ -52,8 +55,9 @@ public class SubjectController {
 
     }
 
+    @CanViewResource
     @Operation(summary = "Get all subjects by school and grade level")
-    @GetMapping
+    @GetMapping("/subjects")
     @ResponseStatus(HttpStatus.OK)
     public Mono<Page<SubjectResponse>> getSubjectBySchoolAndGradeLevel(@RequestParam String schoolCode,
                                                                       @RequestParam String gradeLevel, @RequestParam(defaultValue = "0")
@@ -78,8 +82,10 @@ public class SubjectController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
 
     }
+
+    @CanViewResource
     @Operation(summary = "Get all subjects offer by school")
-    @GetMapping("/all")
+    @GetMapping("/subjects/all")
     @ResponseStatus(HttpStatus.OK)
     public Mono<Page<SubjectResponse>> getAllSchoolSubjects(@RequestParam String schoolCode,
                                                                        @RequestParam(defaultValue = "0")

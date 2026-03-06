@@ -5,6 +5,8 @@ import com.emis.academicservice.dto.request.CreateSchoolClassRequest;
 import com.emis.academicservice.dto.response.SchoolClassResponse;
 import com.emis.academicservice.dto.response.StudentInClassResponse;
 import com.emis.academicservice.exception.BadRequestException;
+import com.emis.academicservice.security.CanCreateResource;
+import com.emis.academicservice.security.CanViewResource;
 import com.emis.academicservice.service.ClassManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -30,7 +32,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-@RequestMapping("api/v1/academic/classes")
+@RequestMapping("api/v1/academic")
 public class ClassManagementController {
 
     private final ClassManagementService service;
@@ -40,24 +42,29 @@ public class ClassManagementController {
             .collect(Collectors.toSet());
     private static final String REQUEST_ID = "requestId";
 
+    @CanCreateResource
     @Operation(summary = "Create a school class")
-    @PostMapping
+    @PostMapping("/classes")
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<SchoolClassResponse> createSchoolClass(@Valid @RequestBody CreateSchoolClassRequest request) {
+    public Mono<SchoolClassResponse> createSchoolClass(
+            @RequestHeader String schoolCode,
+            @Valid @RequestBody CreateSchoolClassRequest request) {
+
         String requestId = UUID.randomUUID().toString();
 
         if (!request.getAcademicYear().matches("\\d{4}/\\d{4}")) {
             throw new BadRequestException("Invalid academicYear format. Expected: '2024/2025'");
         }
-
+        log.info("Creating school class for school code {}", schoolCode);
         return service.createSchoolClass(request, requestId)
                 .doOnSubscribe(sub -> log.info("Creating school class with id {}", requestId))
                 .contextWrite(ctx -> ctx.put(REQUEST_ID, requestId));
 
     }
 
+    @CanViewResource
     @Operation(summary = "Get school classes by school id")
-    @GetMapping()
+    @GetMapping("/classes")
     public Mono<Page<SchoolClassResponse>> getSchoolClasses(
         @RequestParam String schoolCode,
         @RequestParam String academicYear,
@@ -88,10 +95,13 @@ public class ClassManagementController {
 
     }
 
+    @CanViewResource
     @Operation(summary = "Get all students enrolled in a school class")
-    @GetMapping("{classId}/students")
+    @GetMapping("/classes/{classId}/students")
     @ResponseStatus(HttpStatus.OK)
-    public Mono<Page<StudentInClassResponse>> getStudentInClassByClassId(@PathVariable Long classId,
+    public Mono<Page<StudentInClassResponse>> getStudentInClassByClassId(
+                            @RequestHeader String schoolCode,
+                            @PathVariable Long classId,
                             @RequestParam(defaultValue = "0")
                             @Min(value = 0, message = "page must not be less than 0")
                             int page,
@@ -110,6 +120,8 @@ public class ClassManagementController {
         };
 
         var pageRequest = PageRequest.of(page, size, Sort.by(sortColumn));
+
+        log.info("Retrieving students in class for school code {}", schoolCode);
 
         String requestId = UUID.randomUUID().toString();
 

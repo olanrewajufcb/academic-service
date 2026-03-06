@@ -43,13 +43,26 @@ spring:
 
 
 
-#  security:
-#    oauth2:
-#      resourceserver:
-#        jwt:
-#          issuer-uri: http://localhost:8080/realms/emis
-#  lifecycle:
-#    timeout-per-shutdown-phase: 15s
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/emis
+
+      client:
+        registration:
+          academic-service:
+            client-id: emis-academic-service
+            client-secret: ${ACADEMIC_SERVICE_SECRET:academic-service-secret}
+            authorization-grant-type: client_credentials
+            scope: openid
+            provider: keycloak
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8080/realms/emis
+
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
 
 
 server:
@@ -59,11 +72,7 @@ server:
     connection-timeout: 2s
     idle-timeout: 15s
 
-#springdoc:
-#  swagger-ui:
-#    path: /swagger-ui
 
-# application-prod.yml
 springdoc:
   swagger-ui:
     enabled: true
@@ -75,15 +84,6 @@ management:
     web:
       exposure:
         include: "*"
-logging:
-  level:
-    org.springframework.web: DEBUG
-    org.springframework.http.converter: DEBUG
-    org.springframework.validation: DEBUG
-    org.springframework.web.reactive.result.method.annotation: DEBUG
-    io.r2dbc.postgresql.QUERY: DEBUG
-    org.flywaydb: DEBUG
-
 
 emis:
   services:
@@ -102,3 +102,37 @@ emis:
       validate-facility-exists-url: ${emis.services.facility-configuration.base-url}/api/v1/facilities/validate/{facilityId}
 
     timeout: 5
+
+    actions:
+      create-resource:
+        roles:
+          - SCHOOL_ADMIN
+
+      view-resource:
+        roles:
+          - SYSTEM_ADMIN
+          - STATE_ADMIN
+          - SCHOOL_ADMIN
+          - SCHOOL_TEACHER
+          - STUDENT
+          - PARENT
+      restricted-resource:
+        roles:
+          - SYSTEM_ADMIN
+          - STATE_ADMIN
+          - LGA_ADMIN
+          - SCHOOL_ADMIN
+        service-authorities:
+          - INTERNAL_SERVICE
+
+
+logging:
+  level:
+    org.springframework.security: TRACE
+    org.springframework.web: DEBUG
+    org.springframework.http.converter: DEBUG
+    org.springframework.validation: DEBUG
+    org.springframework.web.reactive.result.method.annotation: DEBUG
+    io.r2dbc.postgresql.QUERY: DEBUG
+    org.flywaydb: DEBUG
+

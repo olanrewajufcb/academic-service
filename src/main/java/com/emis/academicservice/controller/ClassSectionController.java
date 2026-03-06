@@ -8,6 +8,8 @@ import com.emis.academicservice.dto.response.ClassSectionResponse;
 import com.emis.academicservice.dto.response.ClassSectionWithSubjectResponse;
 import com.emis.academicservice.dto.response.LessonResponse;
 import com.emis.academicservice.exception.BadRequestException;
+import com.emis.academicservice.security.CanCreateResource;
+import com.emis.academicservice.security.CanViewResource;
 import com.emis.academicservice.service.ClassSectionService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -43,12 +45,14 @@ public class ClassSectionController {
                     .map(Field::getName)
                     .collect(Collectors.toSet());
 
+    @CanCreateResource
     @Operation(summary = "Create a new class section with a school code")
     @PostMapping("/schools/{schoolCode}/sections")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<ClassSectionResponse> createClassSection(
-            @Valid @RequestBody CreateClassSectionRequest request,
-            @PathVariable String schoolCode) {
+            @PathVariable String schoolCode,
+            @Valid @RequestBody CreateClassSectionRequest request
+           ) {
         String requestId = UUID.randomUUID().toString();
 
         return service.createClassSection(request, schoolCode, requestId)
@@ -57,12 +61,13 @@ public class ClassSectionController {
 
     }
 
+    @CanViewResource
     @Operation(summary = "Get all sections/subjects for a given class")
     @GetMapping("/schools/{schoolCode}/classes/{classId}/sections")
     @ResponseStatus(HttpStatus.OK)
     public Mono<Page<ClassSectionWithSubjectResponse>> getAllClassSectionsByClassId(
-            @PathVariable Long classId,
             @PathVariable String schoolCode,
+            @PathVariable Long classId,
             @RequestParam(defaultValue = "0")
             @Min(value = 0, message = "page must not be less than 0")
             int page,
@@ -84,12 +89,13 @@ public class ClassSectionController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
+    @CanViewResource
     @Operation(summary = "Get all class sections/subjects for a given class taught by a staff")
     @GetMapping("/schools/{schoolCode}/classes/{classId}")
     @ResponseStatus(HttpStatus.OK)
     public Mono<ClassSectionResponse> getAllClassSectionsByClassIdAndStaffCode(
-            @PathVariable Long classId,
             @PathVariable String schoolCode,
+            @PathVariable Long classId,
             @RequestParam String staffCode
     ){
         String requestId = UUID.randomUUID().toString();
@@ -98,13 +104,14 @@ public class ClassSectionController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
+    @CanCreateResource
     @Operation(summary = "Update a class section with the staff code in a given school")
     @PutMapping("/schools/{schoolCode}/classes/{classId}/sections/{sectionId}")
     @ResponseStatus(HttpStatus.OK)
     public Mono<ClassSectionResponse> updateClassSection(
+            @PathVariable String schoolCode,
             @PathVariable Long classId,
             @PathVariable Long sectionId,
-            @PathVariable String schoolCode,
             @Valid @RequestBody StaffUpdateRequest request) {
         String requestId = UUID.randomUUID().toString();
         return service.updateClassSection(classId, sectionId, schoolCode, request, requestId)
@@ -113,6 +120,7 @@ public class ClassSectionController {
             }
 
 
+    @CanCreateResource
     @Operation(summary = "Create a lesson for a given section",
     description = "Create a lesson for a given subject ")
     @PostMapping("/schools/{schoolCode}/sections/{sectionId}/lessons")
@@ -127,6 +135,7 @@ public class ClassSectionController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
+    @CanViewResource
     @Operation(summary = "Get all subjects taught by a staff in a school")
     @GetMapping("/schools/{schoolCode}/staff/{staffCode}")
     @ResponseStatus(HttpStatus.OK)

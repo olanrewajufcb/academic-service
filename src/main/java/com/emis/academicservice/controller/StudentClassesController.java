@@ -4,7 +4,9 @@ import com.emis.academicservice.dto.response.ClassSectionResponse;
 import com.emis.academicservice.dto.response.StudentClassesResponses;
 import com.emis.academicservice.dto.response.StudentMarksResponse;
 import com.emis.academicservice.repository.StudentClassesPerYear;
+import com.emis.academicservice.security.CanViewResource;
 import com.emis.academicservice.service.StudentClassesService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,13 +24,17 @@ import java.util.UUID;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-@RequestMapping("api/v1/academic/students/{studentNumber}")
+@RequestMapping("api/v1/academic")
 public class StudentClassesController {
 
     private final StudentClassesService service;
-    @GetMapping("/classes")
-    public Flux<StudentClassesPerYear> getAllStudentClasses(@PathVariable String studentNumber,
+
+    @CanViewResource
+    @Operation(summary = "Get all student's subjects in a school")
+    @GetMapping("/students/{studentNumber}/classes")
+    public Flux<StudentClassesPerYear> getAllStudentSubjects(
                   @RequestParam String schoolCode,
+                  @PathVariable String studentNumber,
                   @RequestParam String academicYear, @RequestParam(defaultValue = "0")
                   @Min(value = 0, message = "page must not be less than 0")
                   int page,
@@ -48,9 +54,12 @@ public class StudentClassesController {
 
     }
 
-    @GetMapping("/marks")
-    public Mono<Page<StudentMarksResponse>> getStudentMarks(@PathVariable String studentNumber,
+    @CanViewResource
+    @Operation(summary = "Get all student's scores in a school")
+    @GetMapping("/students/{studentNumber}/marks")
+    public Mono<Page<StudentMarksResponse>> getStudentMarks(
                                                             @RequestParam String schoolCode,
+                                                            @PathVariable String studentNumber,
                                                             @RequestParam String academicYear,
                                                             @RequestParam(defaultValue = "0")
                                                             @Min(value = 0, message = "page must not be less than 0")

@@ -125,3 +125,11 @@ CREATE INDEX idx_attendance_section_term_active
 CREATE INDEX idx_lessons_section_term_active
     ON academic_schema.lessons(section_id, term_id)
     WHERE deleted_at IS NULL;
+
+CREATE INDEX idx_section_enrollment_active
+    ON academic_schema.section_enrollments(section_id)
+    WHERE deleted_at IS NULL;
+
+CREATE UNIQUE INDEX uk_section_student_active
+    ON academic_schema.section_enrollments(section_id, student_id)
+    WHERE deleted_at IS NULL;

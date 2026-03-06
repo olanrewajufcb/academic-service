@@ -8,7 +8,10 @@ import com.emis.academicservice.dto.response.AssessmentResponse;
 import com.emis.academicservice.dto.response.SectionAssessmentsResponse;
 import com.emis.academicservice.enums.AssessmentType;
 import com.emis.academicservice.exception.BadRequestException;
+import com.emis.academicservice.security.CanCreateResource;
+import com.emis.academicservice.security.CanViewResource;
 import com.emis.academicservice.service.AssessmentService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -41,11 +44,14 @@ public class AssessmentController {
 
     private final AssessmentService service;
 
+    @CanCreateResource
+    @Operation(summary = "Create a subject assessment for a school")
     @PostMapping("/schools/{schoolCode}/assessments")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<AssessmentResponse> createAssessment(
-            @Valid @RequestBody CreateAssessmentRequest request,
-            @PathVariable String schoolCode) {
+            @PathVariable String schoolCode,
+            @Valid @RequestBody CreateAssessmentRequest request
+            ) {
 
         String requestId = UUID.randomUUID().toString();
 
@@ -54,10 +60,13 @@ public class AssessmentController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
+    @CanViewResource
+    @Operation(summary = "Retrieve all assessments for a school section")
     @GetMapping("/schools/{schoolCode}/sections/{sectionId}/assessments")
     @ResponseStatus(HttpStatus.OK)
-    public Mono<Page<AssessmentResponse>> getSectionAssessment( @PathVariable Long sectionId,
+    public Mono<Page<AssessmentResponse>> getSectionAssessment(
                                                                 @PathVariable String schoolCode,
+                                                                @PathVariable Long sectionId,
                                                                 @RequestParam AssessmentType assessmentType,
                                                                 @RequestParam String term,
                                                                 @RequestParam(defaultValue = "0") @Min(0) int page,

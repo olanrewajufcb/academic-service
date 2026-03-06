@@ -5,7 +5,10 @@ import com.emis.academicservice.dto.request.RecordAssessmentRequest;
 import com.emis.academicservice.dto.response.AssessmentResponse;
 import com.emis.academicservice.dto.response.MarkBookResponse;
 import com.emis.academicservice.dto.response.MarkBookViewResponse;
+import com.emis.academicservice.security.CanCreateResource;
+import com.emis.academicservice.security.CanViewResource;
 import com.emis.academicservice.service.MarkBookService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 import java.util.UUID;
@@ -26,21 +29,27 @@ public class MarkBookController {
 
     private final MarkBookService service;
 
+    @CanCreateResource
+    @Operation(summary = "Record a subject assessment mark for a school")
     @PostMapping("/markbook/enteries")
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<MarkBookResponse> recordAssessmentMark(@Valid @RequestBody RecordAssessmentRequest request) {
+    public Mono<MarkBookResponse> recordAssessmentMark(
+            @RequestHeader String schoolCode,
+            @Valid @RequestBody RecordAssessmentRequest request) {
 
+    log.info("Received request to record assessment for school {}", schoolCode);
         String requestId = UUID.randomUUID().toString();
 
         return service.recordAssessmentMark(request, requestId)
                 .doOnSubscribe(sub -> log.info("Creating school class with id {}", requestId))
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
-
+    @CanViewResource
+    @Operation(summary = "Get a school section mark book")
     @GetMapping("/schools/{schoolCode}/sections/{sectionId}/markbook")
     public Mono<MarkBookViewResponse> getSectionMarkBook(
-            @PathVariable Long sectionId,
             @PathVariable String schoolCode,
+            @PathVariable Long sectionId,
             @RequestParam Long assessmentId,
             @RequestParam(required = false) String academicYear
     ){

@@ -5,6 +5,8 @@ import com.emis.academicservice.dto.request.CreateAcademicTermRequest;
 import com.emis.academicservice.dto.request.CreateAssessmentRequest;
 import com.emis.academicservice.dto.response.AcademicTermResponse;
 import com.emis.academicservice.dto.response.AssessmentResponse;
+import com.emis.academicservice.security.CanAccessRestrictedResource;
+import com.emis.academicservice.security.CanCreateResource;
 import com.emis.academicservice.service.AcademicTermService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -26,12 +28,14 @@ public class AcademicTermController {
 
     private final AcademicTermService service;
 
+    @CanCreateResource
     @Operation(summary = "Create a Academic Term for a school")
     @PostMapping("/schools/{schoolCode}/academic-term")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<AcademicTermResponse> createAcademicTerm(
-            @Valid @RequestBody CreateAcademicTermRequest request,
-            @PathVariable String schoolCode) {
+            @PathVariable String schoolCode,
+            @Valid @RequestBody CreateAcademicTermRequest request
+            ) {
 
         String requestId = UUID.randomUUID().toString();
 
@@ -40,6 +44,7 @@ public class AcademicTermController {
                 .contextWrite(ctx -> ctx.put("requestId", requestId));
     }
 
+    @CanAccessRestrictedResource
     @Operation(summary = "Retrieve a created academic term for a school")
     @GetMapping("/schools/{schoolCode}/academic-term/{academicTermId}")
     @ResponseStatus(HttpStatus.OK)

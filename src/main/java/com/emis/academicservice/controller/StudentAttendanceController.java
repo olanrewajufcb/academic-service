@@ -5,6 +5,8 @@ import com.emis.academicservice.dto.request.StudentAttendanceRequest;
 import com.emis.academicservice.dto.response.SectionAttendanceReportResponse;
 import com.emis.academicservice.dto.response.StudentAttendanceResponse;
 import com.emis.academicservice.dto.response.StudentAttendanceSummaryResponse;
+import com.emis.academicservice.security.CanAccessRestrictedResource;
+import com.emis.academicservice.security.CanCreateResource;
 import com.emis.academicservice.service.StudentAttendanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class StudentAttendanceController {
 
     private final StudentAttendanceService studentAttendanceService;
 
+    @CanCreateResource
     @Operation(summary = "Mark a student attendance")
     @PostMapping("/schools/{schoolCode}/attendance/mark")
     @ResponseStatus(HttpStatus.OK)
@@ -40,6 +43,7 @@ public class StudentAttendanceController {
     }
 
 
+    @CanCreateResource
     @Operation(summary = "Compute a student's attendance summary for a school")
     @GetMapping("/schools/{schoolCode}/students/{studentNumber}/attendance-summary")
     @ResponseStatus(HttpStatus.OK)
@@ -56,6 +60,7 @@ public class StudentAttendanceController {
     }
 
 
+    @CanAccessRestrictedResource
     @Operation(summary = "Get a section's attendance report")
     @GetMapping("/schools/{schoolCode}/sections/{sectionId}/attendance-report")
     @ResponseStatus(HttpStatus.OK)
