@@ -47,7 +47,7 @@ public class ClassManagementController {
     @PostMapping("/classes")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<SchoolClassResponse> createSchoolClass(
-            @RequestHeader String schoolCode,
+            @RequestHeader(required = false) String schoolCode,
             @Valid @RequestBody CreateSchoolClassRequest request) {
 
         String requestId = UUID.randomUUID().toString();
@@ -100,7 +100,7 @@ public class ClassManagementController {
     @GetMapping("/classes/{classId}/students")
     @ResponseStatus(HttpStatus.OK)
     public Mono<Page<StudentInClassResponse>> getStudentInClassByClassId(
-                            @RequestHeader String schoolCode,
+                            @RequestHeader(required = false) String schoolCode,
                             @PathVariable Long classId,
                             @RequestParam(defaultValue = "0")
                             @Min(value = 0, message = "page must not be less than 0")

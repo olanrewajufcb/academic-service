@@ -45,9 +45,11 @@ public class SubjectController {
     @Operation(summary = "Register a subject")
     @PostMapping("/subjects")
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<SubjectResponse> registerSubject(@Valid @RequestBody RegisterSubjectRequest request) {
+    public Mono<SubjectResponse> registerSubject(
+            @RequestHeader(required = false) String schoolCode,
+            @Valid @RequestBody RegisterSubjectRequest request) {
         String requestId = UUID.randomUUID().toString();
-        log.info("stage in subject ::::::: {}", request.getStage());
+        log.info("stage in subject ::::::: {} and schoolCode {}", request.getStage(), schoolCode);
 
         return service.registerSubject(request, requestId)
                 .doOnSubscribe(sub -> log.info("Registering subject with id {}", requestId))

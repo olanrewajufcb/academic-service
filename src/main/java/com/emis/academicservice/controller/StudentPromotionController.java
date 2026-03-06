@@ -30,10 +30,13 @@ public class StudentPromotionController {
     @PostMapping("/classes/{studentNumber}/promote")
     @ResponseStatus(HttpStatus.OK)
     public Mono<StudentPromotionResponse> promoteStudentToNextClass(
+            @RequestHeader(required = false) String schoolCode,
             @PathVariable String studentNumber,
             @RequestHeader("X-Idempotency-Key") String idempotencyKey,
             @RequestBody @Valid StudentPromotionRequest request) {
-        log.info("Promoting student {} to the next class", studentNumber);
+
+        log.info("Promoting student {} to the next class and schoolCode {}", studentNumber, schoolCode);
+
         String requestId = UUID.randomUUID().toString();
         return studentPromotionService
                 .promoteStudent(studentNumber,idempotencyKey,  request, requestId)

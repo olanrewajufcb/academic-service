@@ -37,7 +37,7 @@ public class SectionEnrollmentController {
     description = "Assign subject section to a student")
     @PostMapping("/sections/{sectionId}")
     public Mono<SectionEnrollmentResponse> assignSubjectSection(
-            @RequestHeader String schoolCode,
+            @RequestHeader(required = false) String schoolCode,
             @PathVariable Long sectionId,
             @Valid @RequestBody EnrollStudentInClassSectionRequest request) {
         String requestId = UUID.randomUUID().toString();

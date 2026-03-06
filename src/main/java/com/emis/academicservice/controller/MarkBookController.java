@@ -34,7 +34,7 @@ public class MarkBookController {
     @PostMapping("/markbook/enteries")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<MarkBookResponse> recordAssessmentMark(
-            @RequestHeader String schoolCode,
+            @RequestHeader(required = false) String schoolCode,
             @Valid @RequestBody RecordAssessmentRequest request) {
 
     log.info("Received request to record assessment for school {}", schoolCode);

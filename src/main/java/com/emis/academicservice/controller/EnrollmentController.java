@@ -31,7 +31,7 @@ public class EnrollmentController {
     @PostMapping("/placements")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<EnrollmentResponse> placeStudentInClass(
-            @RequestHeader String schoolCode,
+            @RequestHeader(required = false) String schoolCode,
             @RequestHeader("X-Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody EnrollStudentRequest request){
         log.info("Placing student in class with school code {}", schoolCode);
