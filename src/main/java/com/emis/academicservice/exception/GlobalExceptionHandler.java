@@ -193,9 +193,9 @@ public class GlobalExceptionHandler {
         return response;
     }
 
-    @ExceptionHandler(SchoolServiceUnavailableException.class)
+    @ExceptionHandler(ServiceUnavailableException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public Map<String, Object> handleSchoolServiceDown(SchoolServiceUnavailableException ex) {
+    public Map<String, Object> handleSchoolServiceDown(ServiceUnavailableException ex) {
         log.error("School service is down: ", ex);
 
         Map<String, Object> response = new HashMap<>();

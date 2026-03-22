@@ -3,9 +3,9 @@ package com.emis.academicservice.service.client;
 import com.emis.academicservice.config.ServiceConfigurationProperties;
 import com.emis.academicservice.dto.response.StudentDetailsResponse;
 import com.emis.academicservice.dto.response.StudentEnrollmentResponse;
-import com.emis.academicservice.exception.SchoolServiceUnavailableException;
+import com.emis.academicservice.exception.ServiceUnavailableException;
 import com.emis.academicservice.exception.ResourceNotFoundException;
-import com.emis.academicservice.exception.StudentServiceException;
+import com.emis.academicservice.exception.ServiceException;
 import com.emis.academicservice.utils.ClientHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,34 +40,17 @@ public class StudentClientServiceImp implements StudentClientService {
               return response;
             })
         .onErrorMap(
-            WebClientResponseException.NotFound.class,
             err -> {
               log.error(
                   "Exception occurred while trying to get school details for schoolId: {}",
                   studentNumber,
                   err);
-              return new ResourceNotFoundException("Student not found for : " + studentNumber);
-            })
-        .onErrorMap(
-            WebClientResponseException.class,
-            err -> {
-              log.error(
-                  "Exception occurred while trying to get student details for schoolId: {}",
-                  studentNumber,
-                  err);
-              return new SchoolServiceUnavailableException(
-                  "Student service error: " + err.getStatusCode(), err.getResponseBodyAsString());
-            })
-        .onErrorMap(
-            Exception.class,
-            err -> {
-              log.error(
-                  "Unexpected exception occurred while trying to get student details for schoolId: {}",
-                  studentNumber,
-                  err);
-              return new SchoolServiceUnavailableException(
-                  "Unexpected error occurred while fetching student details" + err.getMessage(),
-                  err);
+              if (err instanceof WebClientResponseException.NotFound) {
+                return new ResourceNotFoundException("Student not found for : " + studentNumber);
+              } else if (err instanceof WebClientResponseException.ServiceUnavailable) {
+                return new ServiceUnavailableException("Student service error: ", err);
+              }
+              return new ServiceException("Student service error : " , err);
             });
     }
 
@@ -76,44 +59,28 @@ public class StudentClientServiceImp implements StudentClientService {
         var url = properties.getStudentConfiguration().getGetStudentDetailsUrl();
         var pathVariable = new ConcurrentHashMap<String, Long>();
         pathVariable.put("studentId", studentId);
-        return client
-                .getRequestWithPathVariablesFlux(
-                        url, pathVariable, ClientHelper.getHeaders(), StudentDetailsResponse.class)
-                .map(
-                        response -> {
-                            log.info("Student Details Response: {}", response);
-                            return response;
-                        })
-                .onErrorMap(
-                        WebClientResponseException.NotFound.class,
-                        err -> {
-                            log.error(
-                                    "Exception occurred while trying to get school details for schoolId: {}",
-                                    studentId,
-                                    err);
-                            return new ResourceNotFoundException("Student not found for : " + studentId);
-                        })
-                .onErrorMap(
-                        WebClientResponseException.class,
-                        err -> {
-                            log.error(
-                                    "Exception occurred while trying to get student details for schoolId: {}",
-                                    studentId,
-                                    err);
-                            return new SchoolServiceUnavailableException(
-                                    "Student service error: " + err.getStatusCode(), err.getResponseBodyAsString());
-                        })
-                .onErrorMap(
-                        Exception.class,
-                        err -> {
-                            log.error(
-                                    "Unexpected exception occurred while trying to get student details for schoolId: {}",
-                                    studentId,
-                                    err);
-                            return new SchoolServiceUnavailableException(
-                                    "Unexpected error occurred while fetching student details" + err.getMessage(),
-                                    err);
-                        });
+    return client
+        .getRequestWithPathVariablesFlux(
+            url, pathVariable, ClientHelper.getHeaders(), StudentDetailsResponse.class)
+        .map(
+            response -> {
+              log.info("Student Details Response: {}", response);
+              return response;
+            })
+        .onErrorMap(
+            err -> {
+              log.error(
+                  "Exception occurred while trying to get school details for schoolId: {}",
+                  studentId,
+                  err);
+              if (err instanceof WebClientResponseException.NotFound) {
+                return new ResourceNotFoundException("Student not found for : " + studentId);
+              }
+              if (err instanceof WebClientResponseException.ServiceUnavailable) {
+                return new ServiceUnavailableException("Student service error: ", err);
+              }
+              return new ServiceException("Student service error : ", err);
+            });
     }
 
     @Override
@@ -132,44 +99,28 @@ public class StudentClientServiceImp implements StudentClientService {
         var pathVariable = new ConcurrentHashMap<String, String>();
         pathVariable.put("studentId", String.valueOf(studentId));
         pathVariable.put("schoolId", schoolId);
-        return client
-                .getRequestWithPathVariables(
-                        url, pathVariable, ClientHelper.getHeaders(), StudentDetailsResponse.class)
-                .map(
-                        response -> {
-                            log.info("Student Details Response: {}", response);
-                            return response;
-                        })
-                .onErrorMap(
-                        WebClientResponseException.NotFound.class,
-                        err -> {
-                            log.error(
-                                    "Exception occurred while trying to get school details for schoolId: {}",
-                                    studentId,
-                                    err);
-                            return new ResourceNotFoundException("Student not found for : " + studentId);
-                        })
-                .onErrorMap(
-                        WebClientResponseException.class,
-                        err -> {
-                            log.error(
-                                    "Exception occurred while trying to get student details for schoolId: {}",
-                                    studentId,
-                                    err);
-                            return new SchoolServiceUnavailableException(
-                                    "Student service error: " + err.getStatusCode(), err.getResponseBodyAsString());
-                        })
-                .onErrorMap(
-                        Exception.class,
-                        err -> {
-                            log.error(
-                                    "Unexpected exception occurred while trying to get student details for schoolId: {}",
-                                    studentId,
-                                    err);
-                            return new SchoolServiceUnavailableException(
-                                    "Unexpected error occurred while fetching student details" + err.getMessage(),
-                                    err);
-                        });    }
+    return client
+        .getRequestWithPathVariables(
+            url, pathVariable, ClientHelper.getHeaders(), StudentDetailsResponse.class)
+        .map(
+            response -> {
+              log.info("Student Details Response: {}", response);
+              return response;
+            })
+        .onErrorMap(
+            ex -> {
+              log.error(
+                  "Exception occurred while trying to get school details for schoolId: {}",
+                  studentId,
+                  ex);
+              if (ex instanceof WebClientResponseException.NotFound) {
+                return new ResourceNotFoundException("Student not found for : " + studentId);
+              } else if (ex instanceof WebClientResponseException.ServiceUnavailable) {
+                return new ServiceUnavailableException("Student service error: ", ex);
+              }
+              return new ServiceException("Student service error: " , ex);
+            });
+           }
 
     @Override
     public Mono<StudentEnrollmentResponse> getActiveEnrollment(String studentNumber,
@@ -206,11 +157,11 @@ public class StudentClientServiceImp implements StudentClientService {
                                             "active student enrollment not found: " + studentNumber + ex.getMessage());
                                 } else if (err instanceof WebClientResponseException.ServiceUnavailable ex) {
                                     log.error("Student service unavailable: {}", schoolCode, ex);
-                                    return new SchoolServiceUnavailableException(
+                                    return new ServiceUnavailableException(
                                             "Student service error: " + ex.getStatusCode(), ex.getResponseBodyAsString());
                                 }
 
-                                return new StudentServiceException("Student service error: ", err);
+                                return new ServiceException("Student service error: ", err);
                             });
         }
     }

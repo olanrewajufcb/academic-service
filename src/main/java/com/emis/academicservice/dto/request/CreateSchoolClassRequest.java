@@ -12,6 +12,8 @@ import lombok.Data;
 public class CreateSchoolClassRequest {
     @NotNull(message = "School id cannot be null")
     private Long schoolId;
+    @NotNull(message = "Faculty id cannot be null")
+    private Long facultyId;
     @NotBlank(message = "School code cannot be blank")
     private String schoolCode;
     @NotBlank(message = "School name cannot be blank")

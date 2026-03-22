@@ -126,7 +126,7 @@ CREATE TABLE academic_schema.section_enrollments (
                                                      is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
                                                      deleted_at TIMESTAMPTZ DEFAULT NULL,
                                                      created_at TIMESTAMPTZ DEFAULT NOW(),
-                                                     UNIQUE(section_id, student_id, deleted_at)
+                                                     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 7. ASSESSMENT
@@ -233,12 +233,13 @@ CREATE TABLE academic_schema.student_attendance (
                                             created_at TIMESTAMPTZ DEFAULT NOW()
 
 );
-CREATE INDEX idx_attendance_student_active
-ON academic_schema.student_attendance(lesson_id, student_id)
-WHERE deleted_at IS NULL;
 
 CREATE INDEX idx_attendance_lesson_active
     ON academic_schema.student_attendance(lesson_id)
+    WHERE deleted_at IS NULL;
+
+CREATE UNIQUE INDEX uk_attendance_lesson_student_active
+    ON academic_schema.student_attendance (lesson_id, student_id)
     WHERE deleted_at IS NULL;
 
 
